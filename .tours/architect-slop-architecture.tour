@@ -1,0 +1,113 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Slop Architecture: Layers and Frames",
+  "description": "Architect walkthrough of Slop: capability model, module layers, request workflows, and the frame-by-frame render loop.",
+  "ref": "main",
+  "steps": [
+    {
+      "file": "docs/architecture.md",
+      "line": 3,
+      "title": "North Star: what Slop actually is",
+      "description": "**Situation:** current-state truth for the whole product (accepted 2026-11-22, refreshed 2026-11-23). **Mechanism:** records the five target capabilities and the pivotal decision to delegate tools, permissions and sessions to local OpenCode instead of rebuilding them in PowerShell. **Implication:** every layer in this tour exists to make a thin WPF shell a good front end for that harness. **Gotcha:** Phase 3 (MCP) and Phase 4 (workflows/reminders/settings) are still planned — the capability list is not shipped code; the companion-life slice is what is real today."
+    },
+    {
+      "directory": "src",
+      "title": "Module Map: six math/state modules, one impure shell",
+      "description": "**Situation:** `src/` is split by testability, not by feature. **Mechanism:** Motion, Frame, Silhouette, Face, Lifecycle and OpenCode are mostly math/state, but they are not strictly pure — Sense reads the OS and `%APPDATA%`, Face builds WPF controls, Motion probes system parameters, and OpenCode reads config and HTTP streams; `Slop.ps1` owns the window, dispatcher and network. **Implication:** geometry, idle timing and the request state machine are still headlessly testable without a display. **Gotcha:** adding more WPF or I/O to a math/state module breaks that test lane — keep the boundary."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 6,
+      "title": "Composition Root: dot-source, then bind the visual tree",
+      "description": "**Situation:** the shell loads WPF assemblies and dotsources the six modules into script scope, then binds named elements from the XAML tree. **Mechanism:** the shell owns both the XAML and the mirroring of every downstream layer onto those elements. **Implication:** all layers converge here, so visual bugs surface here. **Gotcha:** the control dots are misnamed — SettingsDot maximizes, PinDot collapses to the pea, and CloseDot minimizes to tray."
+    },
+    {
+      "file": "src/Slop.Motion.ps1",
+      "line": 66,
+      "title": "Motion Layer: springs as the emotional vocabulary",
+      "description": "**Situation:** New-SlopMotionState creates a hashtable of coupled SlopSpring objects plus phase, mood, and signal state. **Mechanism:** each spring holds Value/Velocity/Target with its own stiffness and damping; the signal controller resolves a base condition against identified, prioritized events with explicit lifetimes. **Implication:** motion and visual state stay deterministic and testable without a display. **Gotcha:** update signal events through the resolver, never mutate brushes directly."
+    },
+    {
+      "file": "src/Slop.Motion.ps1",
+      "line": 356,
+      "title": "Idle Workflow: the nine-phase life",
+      "description": "**Situation:** when idle and compact, the state machine rolls a weighted action every 1-3 seconds. **Mechanism:** Get-SlopIdleAction maps a 0-100 roll to anticipate/sit/stretch/wander/blink/tilt/bounce/peek/yawn; Update-SlopMotionState drives each phase's spring targets and gravity hop, while breathing and sway continue in eligible phases. **Implication:** the companion feels alive with no backend traffic. **Gotcha:** the forced-hop threshold is deliberate; lowering it made forced hops swallow most random variety."
+    },
+    {
+      "file": "src/Slop.Frame.ps1",
+      "line": 19,
+      "title": "Membrane Layer: a 48-point spring ring in C#",
+      "description": "**Situation:** SlopFrame is embedded C# compiled at dot-source time. **Mechanism:** N=48 points ride a rounded rectangle; each point has a spring offset coupled to its neighbours, so Kick or Poke travels as a ripple and settles in Step. A seeded static cos(th) field adds per-instance asymmetry at rest. The engine emits only Path and Highlight strings. **Implication:** the organic body is pure geometry — no WPF types, safe to assert headlessly. **Gotcha:** coordinates are in window space, including an 18px margin; the signal stack selects a mood but never transforms the content layer."
+    },
+    {
+      "file": "src/Slop.Frame.ps1",
+      "line": 199,
+      "title": "Frame by Frame: Build() morphs blob into frame",
+      "description": "**Situation:** Build runs on every membrane update at a fixed 1/120s substep. **Mechanism:** open eases the corner radius from near-circle to rounded rectangle, amplitude ramps with the opening, and each point is offset along its normal then hard-clamped inside the window. Bézier control points are clamped too, so the sampled curve cannot escape by the convex-hull property. Near-critically damped springs grow the body, while ContentOpacity delays chat until the body covers the content rect. **Implication:** the pea grows into the chat frame without clipped goo or flashing content. **Gotcha:** Slop.Silhouette.ps1 stores outline data but is not used at runtime; the live path comes from SlopFrame."
+    },
+    {
+      "file": "src/Slop.Face.ps1",
+      "line": 24,
+      "title": "Face Layer: twelve decorative 'alive' pixels",
+      "description": "**Situation:** New-SlopFaceLayer builds 12 hit-test-invisible ellipses seeded by tick count. **Mechanism:** Update-SlopFaceLayer repositions them by scattered/ring/cluster/line/spiral pattern and freezes them for attention signals. The shell clips the layer to a rounded 48x48 region around the compact pea or to the membrane path when expanded. **Implication:** idle phases map to recognizable patterns without a literal face, and the golden-angle spiral carries thinking/approval states. **Gotcha:** these are decoration, not eyes/nose/mouth; the spec explicitly forbids reading them as a literal face."
+    },
+    {
+      "file": "src/Slop.Lifecycle.ps1",
+      "line": 6,
+      "title": "Request Workflow: generation-guarded lifecycle",
+      "description": "**Situation:** every chat turn is a state machine in a plain hashtable. **Mechanism:** Start / Set-Connected / FirstToken / Token / Completed / Failed / Finalized move `Phase` from initiated to streaming to terminal, and `Test-SlopRequestGeneration` (line 24) rejects stale-generation events. **Implication:** Stop/cancel and rapid sends cannot let an old stream corrupt the new turn. **Gotcha:** `Read-SlopSseStream` (line 159) uses token-aware `ReadLineAsync`; the older delegate-based reader needed a runspace and failed silently on cancellation."
+    },
+    {
+      "file": "src/Slop.OpenCode.ps1",
+      "line": 17,
+      "title": "Delegation Boundary: tripwire and event bridge",
+      "description": "**Situation:** this module is the contract with local OpenCode, not a client. **Mechanism:** `Test-SlopOpenCodeConfig` fails closed on Sloppy's own invariants (the global config is the permission model, not an override); `Get-SlopOpenCodeEventTypes` (line 15) and `Read-SlopOpenCodeSse` (line 142) normalize the event stream. **Implication:** tools, permissions, MCP and sessions stay in OpenCode where they are maintained. **Gotcha:** the terminal event on rejection is `session.execution.interrupted` — v2.3.2 emits no `session.idle` — so every terminal event must finalize the stream."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 1264,
+      "title": "Chat Workflow: fail-closed Start-Stream",
+      "description": "**Situation:** Start-Stream is the entry point for every send. **Mechanism:** it resolves a route plan first, sets the honest header badge, gates any remote route behind an explicit disclosure modal, then starts a generation and hands the plan to a thin adapter dispatcher. **Implication:** bad config produces a clean error bubble instead of a stuck Send button, and no remote message leaves before consent. **Gotcha:** the ordering is intentional; enqueueing an error with no timer left to drain the queue caused a real hang."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 1118,
+      "title": "Approval Workflow: in-chat allow / reject",
+      "description": "**Situation:** permission.asked events become approval cards in chat. **Mechanism:** Add-SlopApprovalCard renders Allow / Allow once / Reject buttons wired to Send-SlopPermissionReply; Reject-SlopPendingApprovals clears leftovers on stop and close. **Implication:** the human stays in the loop without leaving the window; buttons disable on first click so a double-click cannot send twice. **Gotcha:** the Add_Click handler reads the button Tag, not function locals — PowerShell event scriptblocks do not close over locals, and GetNewClosure breaks script scope."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 693,
+      "title": "Stop/Cancel: drive the UI, do not wait for the worker",
+      "description": "**Situation:** the Stop button calls Request-StopStream. **Mechanism:** it cancels the token, rejects pending approvals, posts an interrupt to the OpenCode session, and queues cancellation plus completion so the dispatcher finalizes immediately. **Implication:** token growth freezes at once and the phase finalizes even if the backend is slow. **Gotcha:** the SSE reader must be token-aware or tokens can keep arriving after cancellation."
+    },
+    {
+      "file": "src/Slop.Sense.ps1",
+      "line": 123,
+      "title": "System Sense: opt-in, read-only, cached",
+      "description": "**Situation:** Invoke-SlopSenseScan is the local observation pass over thresholds and network listeners. **Mechanism:** Get-SlopSenseEnabled defaults false from the Slop settings file, per-alert cooldowns are cached, and one evaluation runs every 60 seconds on the existing motion clock. **Implication:** Sense can only say something; it never takes action. **Gotcha:** alerts surface only as thought bubbles, never as auto-run prompts or trivia."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 674,
+      "title": "Window Workflow: expand, collapse, maximize, tray",
+      "description": "**Situation:** the same pea becomes a 760x540 chat frame, a work-area-sized window, or a tray icon. **Mechanism:** Expand-Chat opens the membrane from the pea origin; Collapse-Chat reverses it; Minimize-ToTray creates the NotifyIcon. Header controls trigger these actions. **Implication:** manual resizes are remembered and compact size is restored after collapse. **Gotcha:** shortcut chips only insert text through Insert-SlopShortcut; they never execute a command."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 1619,
+      "title": "The Heartbeat: one 33ms dispatcher clock",
+      "description": "**Situation:** one MotionTimer drives the frame-by-frame story. **Mechanism:** each tick computes a capped dt, accumulates time, runs fixed 1/120s physics substeps, then renders once; it also samples Sense once per minute and fades old bubbles. **Implication:** physics is framerate-independent while rendering stays adaptive. **Gotcha:** the timer cannot see function locals, so state must be published to script scope."
+    },
+    {
+      "file": "src/Slop.ps1",
+      "line": 584,
+      "title": "Frame by Frame: Apply-SlopMotion is the draw call",
+      "description": "**Situation:** Apply-SlopMotion is the last step before pixels. **Mechanism:** it syncs the effective signal and animates brushes/glyph visibility, maps springs to scale and angle, translates the pea, updates membrane mood and BodyPath, toggles pea versus body at closure, and drives bubble entrance springs. **Implication:** every layer above is visible here in one place. **Gotcha:** reduced motion snaps springs and sets membrane motion scale to zero, so the same draw call stays still on request."
+    },
+    {
+      "title": "Next Steps",
+      "description": "**Situation:** you now hold the whole path end to end. **Mechanism:** trace a send from `Start-Stream` to lifecycle to OpenCode SSE to bubbles to `Finish-Stream`, then watch the same turn drive signal to springs to membrane to `Apply-SlopMotion`. **Implication:** you can add an idle action, a Sense alert or an approval branch without guessing which layer owns it. **Gotcha:** verify with the headless suites plus `tools/verify-motion.ps1` — green unit tests alone have repeatedly missed live-only defects."
+    }
+  ]
+}

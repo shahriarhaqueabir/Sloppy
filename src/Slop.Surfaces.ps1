@@ -1,0 +1,28 @@
+# Headless guards for the four destinations and deletion scopes. No WPF.
+$ErrorActionPreference = 'Stop'
+
+function Get-SlopDestinationMap {
+    return @{
+        Settings  = @('Startup behaviour','Data location','Reset / delete conversation','Delete OpenCode session','Clear Sloppy data','About and version','Advanced / developer')
+        Customize = @('Name','Colours','Personality','Persona text')
+        Brain     = @('Local vs remote','Provider','Model','Agent','Capability profile','Effective model')
+        Privacy   = @('Active data route','Provider terms','Deletion scopes')
+    }
+}
+
+function Test-SlopSurfaceSeparation {
+    param([Parameter(Mandatory)][string]$Destination,[Parameter(Mandatory)][hashtable]$Payload)
+    if ($Destination -eq 'Customize' -and $Payload.ContainsKey('permissions') -and @($Payload.permissions).Count -gt 0) {
+        return @{ Ok=$false; Reason='Customize must never carry security permissions' }
+    }
+    return @{ Ok=$true; Reason=$null }
+}
+
+function Get-SlopDeletionScope {
+    param([Parameter(Mandatory)][ValidateSet('conversation','session','local-data')][string]$Action)
+    switch ($Action) {
+        'conversation' { return @{ Scope='Sloppy transcript'; Copy=(Get-SlopDeletionCopy -Action 'conversation') } }
+        'session'      { return @{ Scope='OpenCode session plus children'; Copy=(Get-SlopDeletionCopy -Action 'session') } }
+        'local-data'   { return @{ Scope='%LOCALAPPDATA%\Sloppy config and persona'; Copy=(Get-SlopDeletionCopy -Action 'local-data') } }
+    }
+}

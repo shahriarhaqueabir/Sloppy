@@ -1,0 +1,29 @@
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Local configuration, memory, and credentials
+.memory/
+.opencode/
+.env
+.env.*
+!.env.example
+**/service.json
+
+# Editor
+.vscode/
+.idea/
+
+# Dependencies and build output
+node_modules/
+dist/
+build/
+
+# Git worktrees
+.worktrees/
+
+# Agent brainstorm artifacts
+.superpowers/
+
+# Test artifacts
+/testResults.xml
