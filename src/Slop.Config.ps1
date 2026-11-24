@@ -55,10 +55,20 @@ function New-SlopDefaultConfig {
         ownerName         = ''
         color             = 'ocean'
         personality       = 'calm'
+        instructions      = ''
         brain             = 'builtin'
         endpointUrl       = ''
         modelName         = ''
         autostart         = $true
+
+        # Tier 1 bundled local brain (Gemma 4 E2B QAT Q4_0). Readiness flags
+        # describe runtime capability hooks, not enabled capture/UI wiring.
+        localModelName    = 'Gemma 4 E2B QAT Q4_0'
+        localModelFile    = 'models\gemma-4-E2B_q4_0-it.gguf'
+        localMmprojFile   = 'models\gemma-4-E2B-it-mmproj.gguf'
+        localContextSize  = 8192
+        localVisionReady  = $true
+        localAudioReady   = $true
 
         # Part B route fields. Defaults stay local-first and disclose nothing.
         provider          = ''
@@ -89,6 +99,7 @@ function Test-SlopConfig {
         $errors.Add('name must be 1-40 characters')
     }
     if (([string]$Config.ownerName).Length -gt 40) { $errors.Add('ownerName must be at most 40 characters') }
+    if ($Config.ContainsKey('instructions') -and ([string]$Config.instructions).Length -gt 1200) { $errors.Add('instructions must be at most 1200 characters') }
     if (-not $script:SlopIdentityColors.ContainsKey([string]$Config.color)) { $errors.Add('color is not an identity swatch') }
     if ($script:SlopPersonalities -notcontains [string]$Config.personality) { $errors.Add('personality preset is unknown') }
     if ($script:SlopBrains -notcontains [string]$Config.brain) { $errors.Add('brain choice is unknown') }
@@ -113,6 +124,12 @@ function Test-SlopConfig {
     }
     if (([string]$Config.provider).Length -gt 80) { $errors.Add('provider is too long') }
     if (([string]$Config.model).Length -gt 120) { $errors.Add('model is too long') }
+    if (([string]$Config.localModelName).Length -gt 120) { $errors.Add('localModelName is too long') }
+    if (([string]$Config.localModelFile).Length -gt 260) { $errors.Add('localModelFile is too long') }
+    if (([string]$Config.localMmprojFile).Length -gt 260) { $errors.Add('localMmprojFile is too long') }
+    if (@(8192, 16384, 32768) -notcontains [int]$Config.localContextSize) { $errors.Add('localContextSize must be 8192, 16384, or 32768') }
+    if ($Config.localVisionReady -isnot [bool]) { $errors.Add('localVisionReady must be a boolean') }
+    if ($Config.localAudioReady -isnot [bool]) { $errors.Add('localAudioReady must be a boolean') }
     if (([string]$Config.agentId).Length -gt 80) { $errors.Add('agentId is too long') }
     if (([string]$Config.serviceConfigPath).Length -gt 260) { $errors.Add('serviceConfigPath is too long') }
     if (([string]$Config.openCodeBaseUrl).Length -gt 260) { $errors.Add('openCodeBaseUrl is too long') }
@@ -146,6 +163,15 @@ function Read-SlopConfig {
         # normalise JSON booleans and strings without accepting arbitrary values
         $cfg.autostart = [bool]$cfg.autostart
     }
+    # Local bundled brain readiness hooks: keep backward-compatible defaults and
+    # normalize invalid enum/bool values to safe defaults.
+    $allowedLocalCtx = @(8192, 16384, 32768)
+    if ($allowedLocalCtx -notcontains [int]$cfg.localContextSize) { $cfg.localContextSize = 8192 }
+    $cfg.localVisionReady = [bool]$cfg.localVisionReady
+    $cfg.localAudioReady = [bool]$cfg.localAudioReady
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.localModelName)) { $cfg.localModelName = $defaults.localModelName }
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.localModelFile)) { $cfg.localModelFile = $defaults.localModelFile }
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.localMmprojFile)) { $cfg.localMmprojFile = $defaults.localMmprojFile }
     # A JSON object for 'agent' arrives as PSCustomObject; the route resolver
     # only needs hashtable-style member access, so normalise it explicitly.
     if ($cfg.agent -isnot [hashtable]) {

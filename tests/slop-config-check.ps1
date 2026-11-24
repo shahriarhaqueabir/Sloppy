@@ -36,6 +36,32 @@ Describe 'Slop.Config' {
         @($result.Errors).Count | Should -Be 0
     }
 
+    It 'defaults local bundled context and readiness for Gemma E2B' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.localModelName | Should -Be 'Gemma 4 E2B QAT Q4_0'
+        $cfg.localModelFile | Should -Match 'gemma-4-E2B_q4_0-it\.gguf$'
+        $cfg.localMmprojFile | Should -Match 'gemma-4-E2B-it-mmproj\.gguf$'
+        $cfg.localContextSize | Should -Be 8192
+        $cfg.localVisionReady | Should -BeTrue
+        $cfg.localAudioReady | Should -BeTrue
+    }
+
+    It 'accepts allowed localContextSize values and normalizes invalid ones' {
+        foreach ($size in 8192,16384,32768) {
+            $cfg = New-SlopDefaultConfig
+            $cfg.localContextSize = $size
+            (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+        }
+        $bad = New-SlopDefaultConfig
+        $bad.localContextSize = 12345
+        (Test-SlopConfig -Config $bad).Ok | Should -BeFalse
+
+        [IO.File]::WriteAllText($script:ConfigPath, '{"name":"Pea","localContextSize":12345}', [Text.UTF8Encoding]::new($false))
+        $r = Read-SlopConfig -ConfigPath $script:ConfigPath
+        $r.Ok | Should -BeTrue
+        $r.Config.localContextSize | Should -Be 8192
+    }
+
     It 'returns six identity colors, none of which is a semantic signal hex' {
         $colors = Get-SlopIdentityColors
         @($colors.Keys).Count | Should -Be 6
@@ -81,6 +107,28 @@ Describe 'Slop.Config' {
         $cfg.model = 'qwen3:8b'
         $cfg.capabilityProfile = 'companion'
         (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+    }
+
+    It 'rejects instructions longer than 1200 characters' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.instructions = 'x' * 1201
+        $result = Test-SlopConfig -Config $cfg
+        $result.Ok | Should -BeFalse
+        $result.Errors | Should -Contain 'instructions must be at most 1200 characters'
+    }
+
+    It 'accepts a loopback openCodeBaseUrl and rejects non-loopback or credentialed values' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.openCodeBaseUrl = 'http://127.0.0.1:28894'
+        (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+
+        foreach ($bad in @('https://example.com', 'http://localhost:28894?x=1', 'http://user:pass@127.0.0.1:28894', 'http://127.0.0.1:28894#frag')) {
+            $badCfg = New-SlopDefaultConfig
+            $badCfg.openCodeBaseUrl = $bad
+            $result = Test-SlopConfig -Config $badCfg
+            $result.Ok | Should -BeFalse
+            $result.Errors | Should -Contain 'openCodeBaseUrl must be a loopback http URL without embedded credentials or query data'
+        }
     }
 
     It 'rejects a non-local endpointUrl only for the custom brain' {
