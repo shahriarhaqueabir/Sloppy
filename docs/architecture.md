@@ -105,17 +105,22 @@ are per-session config, so local stays the default).
 ```
 Slop (WPF, pwsh -STA)
   pea + bubble + input + signals
-        │  existing streaming request path
+        │  route decision
+        ├─ local-bundled (Tier 1) ── llama.cpp b12676 ── Gemma 4 E2B QAT Q4_0
+        │   localhost:18080, model + mmproj, ctx 8192/16384/32768
+        │
         ▼
 Slop.Lifecycle.ps1  ── phases, timestamps, generation guard, SSE parsing, errors
         │
         ▼
-Slop.OpenCode bridge  ── session create, prompt, event translation  [sub-project B]
+Slop.OpenCode bridge  ── session create, prompt, event translation
         │  HTTP + SSE
         ▼
 opencode serve --port 28894 (Basic auth; password from ~/.config/opencode/service.json)
-  sessions │ agents │ tools │ permissions │ MCP │ websearch │ events
+  sessions · agents · tools · permissions · MCP · websearch · events
 ```
+
+Tier 1 local brain is bundled for local-first operation: `runtime/llama-b12676-bin-win-cuda-13.5-x64/llama-server.exe`, `runtime/models/gemma-4-E2B_q4_0-it.gguf`, and `runtime/models/gemma-4-E2B-it-mmproj.gguf`. Large runtime/model artifacts are tracked via Git LFS; HF download cache under `runtime/models/.cache/` is ignored. The current request/UI path is text-only; mmproj and configurable context size are readiness hooks for future multimodal capture/request wiring, not shipped multimodal UI.
 
 The bridge creates **one OpenCode session per Slop conversation** and sends only new
 user text on each turn. Slop must stop resending its 12-message history — OpenCode

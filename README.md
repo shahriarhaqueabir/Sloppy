@@ -8,7 +8,7 @@
 
 Sloppy sits on your desktop as an animated pea. It changes colour, shape and motion with what your agent is actually doing: thinking, working, waiting on a tool, stalled, asking permission, or finishing a reply. When OpenCode asks for approval, the decision appears in the chat as **Allow / Allow once / Reject** instead of hiding in a log.
 
-It is local-first and quiet. There is no cloud account, no telemetry, and no model bundled here. You bring your own [OpenCode](https://opencode.ai/) setup; Sloppy is the face and the permission surface for it, talking to a local service over loopback HTTP.
+It is local-first and quiet. There is no cloud account and no telemetry. Sloppy ships a bundled Tier 1 local brain — **Gemma 4 E2B QAT Q4_0** running on `llama.cpp` b12676 — with runtime/model artifacts tracked via Git LFS for local-first use. You can also connect your own [OpenCode](https://opencode.ai/) provider; Sloppy is the face and the permission surface, talking to a local service over loopback HTTP.
 
 ## Why you might want it
 
@@ -51,9 +51,10 @@ Requirements:
 
 - Windows
 - PowerShell 7.6 or later, in STA mode
-- A local OpenCode service with your agent, model and provider configured
+- Git LFS (to fetch bundled runtime/model artifacts in a source checkout)
+- Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
-Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one.
+Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain is text-only in the current request path; multimodal runtime hooks are ready, but image/audio capture and request wiring are not shipped yet.
 
 ## What it is not
 
@@ -64,7 +65,7 @@ The companion product is still early. Some ideas in [the plans](docs/superpowers
 ## Proof
 
 ```powershell
-# Full Pester aggregate — 522 tests
+# Full Pester aggregate
 pwsh -NoProfile -Command "Import-Module Pester -MinimumVersion 6.0; Invoke-Pester -Path 'tests/Slop.Tests.ps1' -CI -Output Detailed"
 
 # Geometry verifier — 18 scenarios
