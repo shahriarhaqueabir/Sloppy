@@ -133,7 +133,11 @@ function Get-SlopRoutePlan {
             ReadyToSend=[bool]$profileResult.Verified
             AdapterPath=(Join-Path $ScriptRootPath 'Slop.Adapter.OpenCode.ps1')
             AdapterArgs=@{
-                BaseUrl=$baseUrl; PromptBody=(New-SlopPromptBody -Text $UserText)
+                BaseUrl=$baseUrl; PromptBody=(New-SlopPromptBody -Text $UserText `
+                    -Instructions ([string]$Config.instructions) `
+                    -Persona $PersonaText `
+                    -Name ([string]$Config.name) `
+                    -OwnerName ([string]$Config.ownerName))
                 LifecyclePath=$lifecycle; BridgePath=$bridge
                 Auth=$auth
                 EventTypes=@(Get-SlopOpenCodeEventTypes); TimeoutSeconds=300
@@ -167,7 +171,7 @@ function Get-SlopRoutePlan {
             BaseUrl=("http://127.0.0.1:$($paths.Port)")
             RequestBody=$body; LifecyclePath=$lifecyclePath; TimeoutSeconds=300
         }
-        Badge=(Get-SlopRouteBadge -Kind 'local-bundled' -Provider 'bundled' -Model 'Qwen3 4B Q4_K_M')
+        Badge=(Get-SlopRouteBadge -Kind 'local-bundled' -Provider 'bundled' -Model 'Gemma 4 E2B QAT Q4_0')
         RouteKind='local-bundled'; RequiresDisclosure=$false; PermissionProfile='companion'
     }
 }

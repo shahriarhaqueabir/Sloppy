@@ -95,8 +95,8 @@ $xaml = @'
       <TextBlock x:Name="RouteBadge" Grid.Row="0" HorizontalAlignment="Left"
                  VerticalAlignment="Center" Margin="162,0,0,0" MaxWidth="206"
                  TextTrimming="CharacterEllipsis" FontSize="9" Foreground="#B8B8C0"
-                 Text="Local · bundled · Qwen3 4B Q4_K_M"
-                 AutomationProperties.Name="Local · bundled · Qwen3 4B Q4_K_M" IsHitTestVisible="False"/>
+                 Text="Local · bundled · Gemma 4 E2B QAT Q4_0"
+                 AutomationProperties.Name="Local · bundled · Gemma 4 E2B QAT Q4_0" IsHitTestVisible="False"/>
       <!-- Three faint embedded dots near the wide head shelf; revealed on hover -->
       <Border x:Name="ControlDots" Grid.Row="0" HorizontalAlignment="Right"
               VerticalAlignment="Center" Margin="0,0,14,0" Padding="3"
@@ -131,25 +131,47 @@ $xaml = @'
             </ScrollViewer>
 
             <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
-              <TextBlock Text="Startup behaviour" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <Button x:Name="AutostartButton" Content="Autostart: Off" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
-              <TextBlock Text="Data location: %LOCALAPPDATA%\Sloppy" Foreground="#8A8A96" FontSize="10"
-                         TextWrapping="Wrap" Margin="6,0,6,10"/>
-              <TextBlock Text="Reset / delete conversation" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-              <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-              <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
-              <TextBlock x:Name="AboutText" Text="About and version — Sloppy companion v1" Foreground="#8A8A96"
-                         FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
-              <TextBlock Text="Advanced / developer" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <StackPanel x:Name="AdvancedStack" Margin="6,0,6,8"/>
-              <Button x:Name="SettingsBack" Content="Back to chat" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+                <StackPanel Margin="0,0,4,0">
+                  <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
+
+                  <TextBlock Text="Companion" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,0,6,4"/>
+                  <TextBlock Text="Custom instructions" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsInstructionsBox" Height="56" FontSize="11" AcceptsReturn="True"
+                           TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="6,0,6,8" Padding="6,4"/>
+
+                  <TextBlock Text="Brain / runtime" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <TextBlock Text="Model (synced to model/modelName)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsModelBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+                  <TextBlock Text="OpenCode base URL (loopback only)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsBaseUrlBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+                  <TextBlock Text="OpenCode agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsAgentIdBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+
+                  <Button x:Name="SettingsSaveButton" Content="Save settings" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,10"
+                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+
+                  <TextBlock Text="Startup behaviour" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <Button x:Name="AutostartButton" Content="Autostart: Off" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
+                  <TextBlock Text="Data location: %LOCALAPPDATA%\Sloppy" Foreground="#8A8A96" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
+                  <TextBlock Text="Reset / delete conversation" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
+                  <TextBlock x:Name="AboutText" Text="About and version - Sloppy companion v1" Foreground="#8A8A96"
+                             FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
+                  <TextBlock Text="Advanced / developer" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <StackPanel x:Name="AdvancedStack" Margin="6,0,6,8"/>
+                  <Button x:Name="SettingsBack" Content="Back to chat" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+                </StackPanel>
+              </ScrollViewer>
             </StackPanel>
 
             <StackPanel x:Name="CustomizePanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
@@ -297,6 +319,11 @@ $AutostartButton = $window.FindName('AutostartButton')
 $DeleteConversationButton = $window.FindName('DeleteConversationButton')
 $DeleteSessionButton = $window.FindName('DeleteSessionButton')
 $DeleteLocalDataButton = $window.FindName('DeleteLocalDataButton')
+$SettingsInstructionsBox = $window.FindName('SettingsInstructionsBox')
+$SettingsModelBox = $window.FindName('SettingsModelBox')
+$SettingsBaseUrlBox = $window.FindName('SettingsBaseUrlBox')
+$SettingsAgentIdBox = $window.FindName('SettingsAgentIdBox')
+$SettingsSaveButton = $window.FindName('SettingsSaveButton')
 $CustomizeNameText = $window.FindName('CustomizeNameText')
 $CustomizeColourText = $window.FindName('CustomizeColourText')
 $CustomizePersonalityText = $window.FindName('CustomizePersonalityText')
@@ -359,6 +386,20 @@ $ResizeGrip.Add_MouseLeftButtonUp({
     $ResizeGrip.ReleaseMouseCapture()
 })
 
+function Update-SlopFrameClip {
+    $Frame.Width = [Math]::Max(300.0, $window.ActualWidth - 36)
+    $Frame.Height = [Math]::Max(200.0, $window.ActualHeight - 36)
+    # Keep rectangular content inside the organic rounded body. The body radius
+    # tracks 0.11*min(W,H); asymmetry and dents can push the edge inward, so we
+    # inset a bit more and shrink the clip radius to avoid top/bottom corner cuts.
+    $clipInset = 14.0
+    $clipRadius = [Math]::Max(24.0, 0.11 * [Math]::Min($Frame.Width, $Frame.Height) - 10.0)
+    $clipRect = [System.Windows.Rect]::new($clipInset, $clipInset,
+        [Math]::Max(10.0, $Frame.Width - 2*$clipInset), [Math]::Max(10.0, $Frame.Height - 2*$clipInset))
+    $Frame.Clip = [System.Windows.Media.RectangleGeometry]::new($clipRect, $clipRadius, $clipRadius)
+    if ($script:Membrane) { $script:Membrane.SetFrame([float]$Frame.Width, [float]$Frame.Height) }
+}
+
 # The idle pea and its shadow must stay inside the window at every size.
 # Hardcoded coordinates were left behind when the window was shrunk, which
 # clipped the only visible collapsed element entirely.
@@ -402,8 +443,9 @@ function Update-SlopFaceRegion {
         $script:FaceRegion = @{ Width = $layer.Width; Height = $layer.Height }
     }
     else {
-        $w = 48.0
-        $h = 48.0
+        # Slightly larger compact region gives particles room without leaving the pea.
+        $w = 72.0
+        $h = 72.0
         $px = [System.Windows.Controls.Canvas]::GetLeft($PeaCanvas)
         $py = [System.Windows.Controls.Canvas]::GetTop($PeaCanvas)
         if ([double]::IsNaN($px)) { $px = ([Math]::Max(26.0, $window.ActualWidth) - 26.0) / 2.0 }
@@ -413,7 +455,7 @@ function Update-SlopFaceRegion {
         [System.Windows.Controls.Canvas]::SetLeft($layer, $px + 13.0 - $w / 2.0)
         [System.Windows.Controls.Canvas]::SetTop($layer, $py + 13.0 - $h / 2.0)
         $layer.Clip = [System.Windows.Media.RectangleGeometry]::new(
-            [System.Windows.Rect]::new(0.0, 0.0, $w, $h), 10.0, 10.0)
+            [System.Windows.Rect]::new(0.0, 0.0, $w, $h), 12.0, 12.0)
         $script:FaceRegion = @{ Width = $w; Height = $h }
     }
 }
@@ -422,20 +464,7 @@ $window.Add_SizeChanged({
     param($s, $e)
     $script:WorkArea = [System.Windows.SystemParameters]::WorkArea
     # 18 px of goo room on every side, matching the frame engine's margin.
-    $Frame.Width = [Math]::Max(300.0, $window.ActualWidth - 36)
-    $Frame.Height = [Math]::Max(200.0, $window.ActualHeight - 36)
-    # The clip used to stay at 440x286, which clipped all chat content to the
-    # original 484x330 box when maximized. Rebuild it for the new size.
-    # Inset 8 leaves room for InLimit dents + stroke; the radius must track the
-    # body's rounded frame (0.11*min(W,H)) or clip corners poke outside the blob.
-    # The static per-instance asymmetry can dent the body ~2px further inward
-    # than the symmetric base shape, so the content clip sits 10px in (was 8).
-    $clipInset = 10.0
-    $clipRadius = [Math]::Max(26.0, 0.11 * [Math]::Min($Frame.Width, $Frame.Height) - 5.0)
-    $clipRect = [System.Windows.Rect]::new($clipInset, $clipInset,
-        [Math]::Max(10.0, $Frame.Width - 2*$clipInset), [Math]::Max(10.0, $Frame.Height - 2*$clipInset))
-    $Frame.Clip = [System.Windows.Media.RectangleGeometry]::new($clipRect, $clipRadius, $clipRadius)
-    if ($script:Membrane) { $script:Membrane.SetFrame([float]$Frame.Width, [float]$Frame.Height) }
+    Update-SlopFrameClip
     Update-PeaAnchor
     Update-SlopFaceRegion
 })
@@ -900,6 +929,67 @@ function Add-SlopThoughtBubble {
 
 # --- Four quiet destinations -------------------------------------------------
 # Fill every panel from the live config so the views cannot drift from the route.
+function Get-SlopEffectiveOpenCodeBaseUrl {
+    param([hashtable]$Config)
+    $url = if ($env:OPENCODE_BASE_URL) { [string]$env:OPENCODE_BASE_URL } else { 'http://127.0.0.1:28894' }
+    if ($Config -and -not [string]::IsNullOrWhiteSpace([string]$Config.openCodeBaseUrl)) {
+        $url = [string]$Config.openCodeBaseUrl
+    }
+    return $url.Trim().TrimEnd('/')
+}
+
+function Load-SlopSettings {
+    $cfg = $script:SlopConfigResult.Config
+    if ($null -eq $cfg) { return }
+    $SettingsInstructionsBox.Text = [string]$cfg.instructions
+    $model = [string]$cfg.model
+    if ([string]::IsNullOrWhiteSpace($model)) { $model = [string]$cfg.modelName }
+    $SettingsModelBox.Text = $model
+    $SettingsBaseUrlBox.Text = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
+    $SettingsAgentIdBox.Text = [string]$cfg.agentId
+}
+
+function Save-SlopSettings {
+    $cfg = @{}
+    foreach ($key in $script:SlopConfigResult.Config.Keys) { $cfg[$key] = $script:SlopConfigResult.Config[$key] }
+
+    $cfg.instructions = [string]$SettingsInstructionsBox.Text
+    $model = ([string]$SettingsModelBox.Text).Trim()
+    $cfg.model = $model
+    $cfg.modelName = $model
+    $cfg.openCodeBaseUrl = ([string]$SettingsBaseUrlBox.Text).Trim().TrimEnd('/')
+    $cfg.agentId = ([string]$SettingsAgentIdBox.Text).Trim()
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.agentId)) { $cfg.agentId = 'sloppy' }
+
+    $check = Test-SlopConfig -Config $cfg
+    if (-not $check.Ok) {
+        Add-SlopThoughtBubble -Text "Settings invalid: $($check.Errors -join '; ')"
+        return $false
+    }
+
+    $script:SlopConfigResult.Config = $cfg
+    $script:SlopConfigResult.Ok = $true
+    $script:SlopConfigResult.Exists = $true
+    Write-SlopConfig -Config $cfg
+    $script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
+    Initialize-SlopDestinationPanels
+    Update-SlopRouteBadgeFromConfig
+    Add-SlopThoughtBubble -Text 'Settings saved.'
+    return $true
+}
+
+function Update-SlopRouteBadgeFromConfig {
+    $cfg = $script:SlopConfigResult.Config
+    $kind = Resolve-SlopRouteKind -Config $cfg
+    $agent = if ($cfg.agent) { $cfg.agent } else { @{} }
+    $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
+    if ([string]::IsNullOrWhiteSpace($effective)) {
+        $effective = if ($kind -eq 'local-bundled') { 'Gemma 4 E2B QAT Q4_0' } else { 'unknown' }
+    }
+    $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
+    Set-SlopRouteBadge -Kind $kind -Provider $provider -Model $effective
+}
+
 function Initialize-SlopDestinationPanels {
     $cfg = $script:SlopConfigResult.Config
     $kind = Resolve-SlopRouteKind -Config $cfg
@@ -907,6 +997,8 @@ function Initialize-SlopDestinationPanels {
     $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
     $locality = if ($cfg.providerLocality) { [string]$cfg.providerLocality } else { 'n/a' }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
+
+    Load-SlopSettings
 
     $CustomizeNameText.Text = "Name: $($cfg.name)"
     $CustomizeColourText.Text = "Colour: $($cfg.color)"
@@ -1061,6 +1153,7 @@ $AutostartButton.Add_Click({
     Sync-SlopAutostart -Enabled ([bool]$script:SlopConfigResult.Config.autostart)
     $AutostartButton.Content = "Autostart: $(if ($script:SlopConfigResult.Config.autostart) { 'On' } else { 'Off' })"
 })
+$SettingsSaveButton.Add_Click({ param($s,$e) Save-SlopSettings | Out-Null })
 $DeleteConversationButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'conversation' })
 $DeleteSessionButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'session' })
 $DeleteLocalDataButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'local-data' })
@@ -1265,7 +1358,7 @@ function Start-Stream {
     param([string]$UserText)
 
     if ($script:IsStreaming) { return }
-    # Fail closed before any streaming state or timer exists — otherwise the
+    # Fail closed before any streaming state or timer exists - otherwise the
     # error bubble would be enqueued with nothing left to drain the queue.
     # The amber reaction is set before any blocking health probe so a cold model
     # wake still feels like the companion thinking. Failures clear it below.
@@ -1273,6 +1366,25 @@ function Start-Stream {
         -Status 'Getting ready' -Sticky
     $config = @{} + $script:SlopConfigResult.Config
     $config.openCodeSessionId = [string]$script:OpenCodeSessionId
+    # Validate config before using it: tampered or UI-invalid config must not start a request.
+    $configCheck = Test-SlopConfig -Config $config
+    if (-not $configCheck.Ok) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: invalid config: $($configCheck.Errors -join '; ')]" -IsUser $false
+        return
+    }
+    # Keep personal-opencode compatibility, but be explicit and fail closed for unsupported brains.
+    if ([string]$config.brain -notin @('builtin','custom','opencode')) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: unsupported brain '$($config.brain)']" -IsUser $false
+        return
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$config.openCodeBaseUrl) -and
+        -not (Test-SlopLoopbackHttpUrl -Url ([string]$config.openCodeBaseUrl))) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: openCodeBaseUrl must be a loopback http URL]" -IsUser $false
+        return
+    }
     $streamPlan = Get-SlopStreamPlan `
         -Config $config -UserText $UserText -PersonaText (Read-SlopPersona) `
         -LocalModelProcess $script:LocalModelProcess `
@@ -1591,25 +1703,14 @@ elseif (-not $script:SlopConfigResult.Ok) {
     }
 }
 $script:LocalModelProcess = $null
+$script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $script:SlopConfigResult.Config
 $script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
     [System.Windows.Media.BrushConverter]::new().ConvertFromString(
         (Get-SlopIdentityColor -ColorKey $script:SlopConfigResult.Config.color)).Color)
 $IdentityRing.Fill = $script:IdentityBrush
 
 # Show the configured route from the very first frame, not just after a send.
-$startupConfig = $script:SlopConfigResult.Config
-$startupKind = Resolve-SlopRouteKind -Config $startupConfig
-$startupAgent = if ($startupConfig.agent) { $startupConfig.agent } else { @{} }
-$startupModel = Resolve-SlopEffectiveModel -Agent $startupAgent -Config $startupConfig
-if ([string]::IsNullOrWhiteSpace($startupModel)) {
-    $startupModel = if ($startupKind -eq 'local-bundled') { 'Qwen3 4B Q4_K_M' } else { 'unknown' }
-}
-$startupProvider = if ($startupConfig.provider) { [string]$startupConfig.provider } else { 'bundled' }
-$RouteBadge.Text = Get-SlopRouteBadge -Kind $startupKind -Provider $startupProvider -Model $startupModel
-[System.Windows.Automation.AutomationProperties]::SetName($RouteBadge, $RouteBadge.Text)
-$RouteBadge.ToolTip = if ((Get-SlopRouteCatalog)[$startupKind].TermsRequired) {
-    'This route sends data to a remote model provider. Open Privacy for the exact path.'
-} else { 'Model requests stay on this PC.' }
+Update-SlopRouteBadgeFromConfig
 
 $script:SenseEnabled = Get-SlopSenseEnabled
 $script:SenseAccumulator = 0.0
@@ -1696,9 +1797,17 @@ $script:MotionTimer.Add_Tick({
     }
     if ($frozen) { $speed = 0.0 }
     if ($script:ReducedMotion) { $frozen = $true; $speed = 0.0 }
-    $pattern = $script:Motion.FaceExpression
-    if ($pattern -eq 'peek' -or $sig.Kind -in @('approval','stalled','warning','thinking')) {
-        $pattern = 'spiral'
+    $pattern = switch -Exact ($sig.Kind) {
+        'working'  { 'ring' }
+        'tool'     { 'line' }
+        'success'  { 'burst' }
+        'error'    { 'cross' }
+        'critical' { 'cross' }
+        'approval' { 'spiral' }
+        'stalled'  { 'spiral' }
+        'warning'  { 'spiral' }
+        'thinking' { 'spiral' }
+        default    { $script:Motion.FaceExpression }
     }
     Update-SlopFaceLayer -Target $script:FaceLayer -Time ([DateTime]::UtcNow.Ticks / 1e7) -Speed $speed -Width $script:FaceRegion.Width -Height $script:FaceRegion.Height -Frozen:$frozen -Pattern $pattern -Inset 3.0
 })

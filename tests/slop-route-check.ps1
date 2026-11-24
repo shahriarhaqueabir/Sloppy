@@ -39,8 +39,8 @@ Describe 'Slop.Route' {
     It 'badges locality, provider and effective model - not the tier' {
         Get-SlopRouteBadge -Kind 'opencode-local' -Provider 'Ollama' -Model 'qwen3:8b' |
             Should -Be 'Local · Ollama · qwen3:8b'
-        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Beam Free' |
-            Should -Be 'Remote · OpenCode Go · Beam Free'
+        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Gemma 4 E2B QAT Q4_0' |
+            Should -Be 'Remote · OpenCode Go · Gemma 4 E2B QAT Q4_0'
     }
 
     It 'rejects an unknown route kind' {
