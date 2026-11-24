@@ -17,6 +17,28 @@ It is local-first and quiet. There is no cloud account, no telemetry, and no mod
 - **Stop means stop.** Cancellation reaches the streaming reader itself, not just the initial request.
 - **Small and inspectable.** A WPF / PowerShell frontend with headless tests, a live UI verifier and an 18-step source CodeTour.
 
+## How it works
+
+```text
+You --> Sloppy UI --> OpenCode service (loopback HTTP)
+                          |
+                          | SSE events
+                          v
+                    signal resolver --> face, colour, motion
+                          |
+                          v
+                    approval card --> your decision --> OpenCode
+```
+
+1. **You talk to Sloppy.** The UI forwards your message to a local OpenCode service over loopback HTTP. Nothing leaves your machine unless your OpenCode provider is configured to send it.
+2. **OpenCode does the work.** Sessions, tools, providers and permissions all belong to OpenCode. Sloppy does not build a second agent or a second permission engine.
+3. **Events become one signal.** Incoming events are stored with an identity, priority and lifetime. The resolver combines them with the base state, using priority and recency to pick a single effective signal - lower priority wins, newest breaks ties.
+4. **The signal becomes movement.** Only that resolved signal drives the companion's colour, shape, face, particles and pulse. The pea cannot disagree with the agent it represents.
+5. **Decisions stay in the chat.** When OpenCode asks for permission, the request becomes an Allow / Allow once / Reject card. Each decision carries a generation number, so a late click on an old card cannot approve a newer turn.
+6. **Stop reaches the stream.** Cancellation is passed to the streaming reader itself, not just the initial request, so tokens stop when you press Stop.
+
+Everything above is wired in the WPF / PowerShell frontend; the capability and the safety policy live in OpenCode config.
+
 ## Quick start
 
 There is no installer yet. The honest current path is:
