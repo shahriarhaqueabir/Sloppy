@@ -1,15 +1,25 @@
 # Bundled llama.cpp lifecycle. Headless: process/argument helpers and HTTP health only.
 $ErrorActionPreference = 'Stop'
 $script:SlopModelPort = 18080
+$script:SlopAllowedContextSizes = @(8192, 16384, 32768)
+
+function Get-SlopAllowedContextSizes { return @($script:SlopAllowedContextSizes) }
+
+function Resolve-SlopLocalContextSize {
+    param([int]$ContextSize = 8192)
+    if ($script:SlopAllowedContextSizes -contains [int]$ContextSize) { return [int]$ContextSize }
+    return 8192
+}
 
 function Get-SlopRuntimePaths {
     param([string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'))
     return @{
-        InstallRoot  = $InstallRoot
-        ServerExe    = (Join-Path $InstallRoot 'runtime\llama-server.exe')
-        ModelFile    = (Join-Path $InstallRoot 'models\qwen3-4b-q4_k_m-00001-of-00002.gguf')
-        Port         = $script:SlopModelPort
-        BaseUrl      = "http://127.0.0.1:$script:SlopModelPort"
+        InstallRoot = $InstallRoot
+        ServerExe   = (Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe')
+        ModelFile   = (Join-Path $InstallRoot 'models\gemma-4-E2B_q4_0-it.gguf')
+        MmprojFile  = (Join-Path $InstallRoot 'models\gemma-4-E2B-it-mmproj.gguf')
+        Port        = $script:SlopModelPort
+        BaseUrl     = "http://127.0.0.1:$script:SlopModelPort"
     }
 }
 
@@ -18,6 +28,7 @@ function Test-SlopLocalModelPaths {
     $errors = [Collections.Generic.List[string]]::new()
     if (-not (Test-Path -LiteralPath $Paths.ServerExe)) { $errors.Add('the built-in brain is missing llama-server.exe') }
     if (-not (Test-Path -LiteralPath $Paths.ModelFile)) { $errors.Add('the built-in brain model file is missing') }
+    if (-not (Test-Path -LiteralPath $Paths.MmprojFile)) { $errors.Add('the built-in brain mmproj file is missing') }
     if ($Paths.Port -lt 1024 -or $Paths.Port -gt 65535) { $errors.Add('the local model port is invalid') }
     return @{ Ok = ($errors.Count -eq 0); Reason = ($errors -join '; ') }
 }
@@ -26,13 +37,15 @@ function New-SlopLlamaArguments {
     param(
         [Parameter(Mandatory)][hashtable]$Paths,
         [int]$Threads = 0,
-        [int]$ContextSize = 4096,
+        [int]$ContextSize = 8192,
         [int]$MaxTokens = 512
     )
     if ($Threads -le 0) { $Threads = [Environment]::ProcessorCount - 2 }
     $Threads = [Math]::Max(2, [Math]::Min(8, $Threads))
+    $ContextSize = Resolve-SlopLocalContextSize -ContextSize $ContextSize
     return @(
         '--model', $Paths.ModelFile
+        '--mmproj', $Paths.MmprojFile
         '--host', '127.0.0.1'
         '--port', [string]$Paths.Port
         '--ctx-size', [string]$ContextSize
