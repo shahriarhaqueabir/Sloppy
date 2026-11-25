@@ -13,7 +13,7 @@ $m = [regex]::Match($src, '\$xaml = @''\r?\n(?<xaml>.*?)\r?\n''@', 'Singleline')
 Assert-True $m.Success 'XAML here-string found'
 if ($m.Success) {
     $w = [System.Windows.Markup.XamlReader]::Parse($m.Groups['xaml'].Value)
-    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','AttachBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
+    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     # Four quiet destinations: each panel and its read-only views must exist.
@@ -23,7 +23,7 @@ if ($m.Success) {
     }
     Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3\.5-2B Q4_K_M') 'route badge discloses the bundled model from first frame'
     Assert-True ($src -match '\$MicBtn = \$window\.FindName\(''MicBtn''\)') 'mic button is bound from XAML before handlers are registered'
-    Assert-True ($src -match '\$AttachBtn = \$window\.FindName\(''AttachBtn''\)') 'attach button is bound from XAML before handlers are registered'
+    Assert-True ($src -notmatch 'AttachBtn') 'text-only composer has no attach affordance'
     # BrushConverter returns a Brush; SolidColorBrush::new needs a Color. A missed
     # `.Color` crashed ShowDialog in the live verifier, so guard it statically too.
     Assert-True ($src -match 'IdentityBrush = \[System\.Windows\.Media\.SolidColorBrush\]::new\(\s*\[System\.Windows\.Media\.BrushConverter\]::new\(\)\.ConvertFromString\([\s\S]*?\)\.Color\)') 'identity brush converts to Color before constructing SolidColorBrush'
