@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/sloppy.png" alt="Sloppy, a small desktop companion" width="320">
+  <img src="assets/Sloppy.gif" alt="Sloppy demo — animated desktop companion reacting to agent state" width="400">
+</p>
+
+<p align="center">
+  <a href="assets/Sloppy.mp4">▶ Watch the full-quality video (MP4)</a>
 </p>
 
 # Sloppy
@@ -38,6 +42,12 @@ You --> Sloppy UI --> OpenCode service (loopback HTTP)
 6. **Stop reaches the stream.** Cancellation is passed to the streaming reader itself, not just the initial request, so tokens stop when you press Stop.
 
 Everything above is wired in the WPF / PowerShell frontend; the capability and the safety policy live in OpenCode config.
+
+## Fun things you can do
+
+- Watch the pea react to your agent in real time — thinking, working, stalled, asking permission, finishing
+- Teach it to play digital hide-and-seek: it follows your cursor, hides, peeks
+- Turn on System Sense and it leaves thought bubbles when your CPU, RAM, or disk misbehaves
 
 ## Quick start
 
