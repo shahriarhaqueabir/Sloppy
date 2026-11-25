@@ -166,6 +166,17 @@ function DotColor {
     $b = Grab
     try { Classify (Pixel $b 50 36) } finally { $b.Dispose() }
 }
+# The header fades in after expand; a single 700ms sample can land on the dark
+# ramp. Poll until the idle blue settles instead of failing on animation timing.
+function Wait-DotBlue {
+    param([int]$TimeoutMs = 5000)
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+    do {
+        if ((DotColor) -eq 'blue') { return $true }
+        Start-Sleep -Milliseconds 50
+    } while ([DateTime]::UtcNow -lt $deadline)
+    return $false
+}
 # the pea hops, so a fixed coordinate misses it mid-hop; find its blue centroid
 function Find-Pea {
     $b = Grab
@@ -343,9 +354,9 @@ for ($try=1;$try -le 3 -and -not $expanded;$try++) {
     if ($p.R -lt 60 -and $p.G -lt 80 -and $p.B -gt 30) { $expanded = $true; "EXPAND panel=$($p.R),$($p.G),$($p.B)" }
 }
 if (-not $expanded) { throw 'click never expanded chat' }
+if (-not (Wait-DotBlue -TimeoutMs 5000)) { throw 'chat-open header dot is not blue' }
 $b = Grab; $chatDot = Pixel $b 50 36; $b.Dispose()
 "SIGNAL chat-open dot=$($chatDot.R),$($chatDot.G),$($chatDot.B) color=$(Classify $chatDot)"
-if ((Classify $chatDot) -ne 'blue') { throw 'chat-open header dot is not blue' }
 
 # Expanded size should be the remembered 760x540, not the old 484x330.
 $er = $script:W.Current.BoundingRectangle
@@ -436,14 +447,16 @@ Set-UiaValue 'InputBox' 'Reply with the single word OK.'
 Invoke-Uia 'SendBtn'
 Start-Sleep -Milliseconds 120
 "SEND after click input='$((Get-UiaValue 'InputBox'))' stopVisible=$([bool](Find-Uia 'StopBtn'))"
-# Poll the dot immediately: a fast local reply can finish before a single 300ms
-# sample, so the old check saw the green success overlay and threw.
+# Poll immediately and keep polling through model startup: a fast local reply
+# can finish before one sample, while a freshly loaded 2B brain can stay idle
+# for tens of seconds. Either thinking or success ends this wait; the fallback
+# below still enforces the final success signal with its own timeout.
 $dotColors = @{}
-for ($i=0; $i -lt 40; $i++) {
+for ($i=0; $i -lt 400; $i++) {
     $c = DotColor
     $dotColors[$c] = $true
-    if ($c -eq 'amber') { break }
-    Start-Sleep -Milliseconds 40
+    if ($c -in @('amber','green')) { break }
+    Start-Sleep -Milliseconds 150
 }
 "PRESTREAM dot colors=$($dotColors.Keys -join ',')"
 if ($dotColors.ContainsKey('amber')) { 'SIGNAL thinking dot observed = amber' }
