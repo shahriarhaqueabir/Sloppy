@@ -3,10 +3,44 @@ $ErrorActionPreference = 'Stop'
 
 function Get-SlopDestinationMap {
     return @{
-        Settings  = @('Startup behaviour','Data location','Reset / delete conversation','Delete OpenCode session','Clear Sloppy data','About and version','Advanced / developer')
-        Customize = @('Name','Colours','Personality','Persona text')
-        Brain     = @('Local vs remote','Provider','Model','Agent','Capability profile','Effective model')
-        Privacy   = @('Active data route','Provider terms','Deletion scopes')
+        Settings  = @('Startup behaviour','Data location','About and version','Advanced / developer')
+        Customize = @('Name','Colour','Personality','Persona text')
+        Brain     = @('Local vs remote','Provider','Endpoint','Model','Agent','Capability profile','Effective model')
+        Privacy   = @('Active data route','Provider terms','Deletion scopes','Deletion actions')
+    }
+}
+
+function Get-SlopDestinationContract {
+    param([Parameter(Mandatory)][ValidateSet('Settings','Customize','Brain','Privacy')][string]$Name)
+    switch ($Name) {
+        'Settings' {
+            return @{
+                Status   = 'SettingsStatusText'
+                Editable = @('SettingsInstructionsBox','SettingsModelBox','SettingsBaseUrlBox','SettingsAgentIdBox','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox')
+                Actions  = @('SettingsSaveButton','AutostartButton','VoiceRepairButton','SettingsBack')
+            }
+        }
+        'Customize' {
+            return @{
+                Status   = 'CustomizeStatusText'
+                Editable = @('CustomizeNameBox','CustomizeColourCombo','CustomizePersonalityCombo','CustomizePersonaBox')
+                Actions  = @('CustomizeSaveButton','CustomizeBack')
+            }
+        }
+        'Brain' {
+            return @{
+                Status   = 'BrainStatusText'
+                Editable = @('BrainTypeCombo','BrainProviderBox','BrainLocalityCombo','BrainTierCombo','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo')
+                Actions  = @('BrainSaveButton','BrainBack')
+            }
+        }
+        'Privacy' {
+            return @{
+                Status   = 'PrivacyStatusText'
+                Editable = @()
+                Actions  = @('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton','PrivacyBack')
+            }
+        }
     }
 }
 
