@@ -22,6 +22,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'Slop.Surfaces.ps1')
 # Disclosure acceptance is per app lifetime; never persisted.
 $script:SlopDisclosureAccepted = $false
+$script:PendingAttachments = [System.Collections.Generic.List[hashtable]]::new()
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -238,12 +239,12 @@ $xaml = @'
                        Foreground="#77EAEAEA" VerticalAlignment="Center" Margin="7,0,0,0"
                        IsHitTestVisible="False"/>
           </Grid>
-          <Button x:Name="MicBtn" Grid.Column="1" Content="◉" Style="{StaticResource SlopButton}"
+          <Button x:Name="MicBtn" Grid.Column="1" Content="🎤" Style="{StaticResource SlopButton}"
                   Width="28" Height="34" Margin="6,0,0,0" Background="Transparent" Foreground="#AAA"
-                  Cursor="Hand" FontSize="13" ToolTip="Voice input (not wired in this slice)"/>
+                  Cursor="Hand" FontSize="13" ToolTip="Record a short voice note (click to start/stop)"/>
           <Button x:Name="AttachBtn" Grid.Column="2" Content="+" Style="{StaticResource SlopButton}"
                   Width="28" Height="34" Margin="4,0,0,0" Background="Transparent" Foreground="#AAA"
-                  Cursor="Hand" FontSize="13" ToolTip="Attach (not wired in this slice)"/>
+                  Cursor="Hand" FontSize="13" ToolTip="Attach audio or image file"/>
           <Button x:Name="StopBtn" Grid.Column="3" Content="■" Style="{StaticResource SlopButton}"
                   Width="40" Height="34" Margin="6,0,0,0" Background="#7F1D1D" Foreground="White"
                   Cursor="Hand" FontSize="11" Visibility="Collapsed"/>
@@ -984,7 +985,8 @@ function Update-SlopRouteBadgeFromConfig {
     $agent = if ($cfg.agent) { $cfg.agent } else { @{} }
     $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
     if ([string]::IsNullOrWhiteSpace($effective)) {
-        $effective = if ($kind -eq 'local-bundled') { 'Gemma 4 E2B QAT Q4_0' } else { 'unknown' }
+        $bundled = if (Get-Command Get-SlopBundledModelName -ErrorAction SilentlyContinue) { Get-SlopBundledModelName } else { 'Gemma 4 E2B QAT Q4_0' }
+        $effective = if ($kind -eq 'local-bundled') { $bundled } else { 'unknown' }
     }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
     Set-SlopRouteBadge -Kind $kind -Provider $provider -Model $effective
@@ -1355,7 +1357,10 @@ function Show-SlopDisclosure {
 }
 
 function Start-Stream {
-    param([string]$UserText)
+    param(
+        [string]$UserText,
+        [object[]]$Attachments = @()
+    )
 
     if ($script:IsStreaming) { return }
     # Fail closed before any streaming state or timer exists - otherwise the
@@ -1387,6 +1392,7 @@ function Start-Stream {
     }
     $streamPlan = Get-SlopStreamPlan `
         -Config $config -UserText $UserText -PersonaText (Read-SlopPersona) `
+        -Attachments $Attachments `
         -LocalModelProcess $script:LocalModelProcess `
         -ScriptRootPath $PSScriptRoot -RepoRootPath (Split-Path $PSScriptRoot -Parent)
     if (-not $streamPlan.Ok) {
@@ -1456,7 +1462,7 @@ function Start-Stream {
         try {
             if ($Plan.NeedsLocalModelStart) {
                 . $Plan.LocalModelModule
-                $start = Start-SlopLocalModel -Paths $Plan.LocalModelPaths
+                $start = Start-SlopLocalModel -Paths $Plan.LocalModelPaths -ContextSize ([int]$Plan.LocalModelContextSize)
                 if (-not $start.Ok) { $Queue.Enqueue("__ERR__$($start.Reason)"); return }
                 # Hand the owned process back to the UI thread for clean shutdown.
                 $Queue.Enqueue("__SLOPMODEL__$($start.Process.Id)")
@@ -1616,12 +1622,93 @@ function Start-Stream {
     $timer.Start()
 }
 
+function Add-SlopPendingAttachment {
+    param([Parameter(Mandatory)][hashtable]$Attachment)
+    $script:PendingAttachments.Add($Attachment) | Out-Null
+    $count = $script:PendingAttachments.Count
+    $names = @($script:PendingAttachments | ForEach-Object { [string]$_.name }) -join ', '
+    $InputPlaceholder.Text = "Attached ($count): $names"
+    $InputPlaceholder.Visibility = 'Visible'
+}
+
+function Clear-SlopPendingAttachments {
+    $script:PendingAttachments.Clear()
+    $InputPlaceholder.Text = 'Ask something.'
+    $InputPlaceholder.Visibility = if ([string]::IsNullOrEmpty($InputBox.Text)) { 'Visible' } else { 'Collapsed' }
+}
+
 $sendAction = {
     $text = $InputBox.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($text)) { return }
+    $atts = @($script:PendingAttachments.ToArray())
+    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -eq 0) { return }
     $InputBox.Text = ''
-    Start-Stream -UserText $text
+    Clear-SlopPendingAttachments
+    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -gt 0) { $text = 'Please analyze the attached file(s).' }
+    Start-Stream -UserText $text -Attachments $atts
 }
+
+$AttachBtn.Add_Click({
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+        $dlg = [System.Windows.Forms.OpenFileDialog]::new()
+        $dlg.Title = 'Attach audio or image'
+        $dlg.Filter = 'Media files|*.wav;*.mp3;*.m4a;*.ogg;*.flac;*.png;*.jpg;*.jpeg;*.webp;*.gif|Audio|*.wav;*.mp3;*.m4a;*.ogg;*.flac|Images|*.png;*.jpg;*.jpeg;*.webp;*.gif|All files|*.*'
+        $dlg.Multiselect = $true
+        if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+        foreach ($f in @($dlg.FileNames)) {
+            $att = New-SlopAttachmentFromFile -Path $f
+            Add-SlopPendingAttachment -Attachment $att
+        }
+    }
+    catch {
+        Add-Bubble -Text "[error: attachment failed: $($_.Exception.Message)]" -IsUser $false
+    }
+})
+
+$script:MicRecording = $false
+$script:MicRecorderPath = $null
+$MicBtn.Add_Click({
+    try {
+        if (-not ('SlopWinMM' -as [type])) {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class SlopWinMM {
+  [DllImport("winmm.dll", CharSet=CharSet.Auto)] public static extern int mciSendString(string command, StringBuilder buffer, int bufferSize, IntPtr hwndCallback);
+}
+"@
+        }
+        if ($script:MicRecording) {
+            [SlopWinMM]::mciSendString('stop slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+            [SlopWinMM]::mciSendString(('save slopmic "' + $script:MicRecorderPath + '"'), $null, 0, [IntPtr]::Zero) | Out-Null
+            [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+            $script:MicRecording = $false
+            $MicBtn.Content = '🎤'
+            $MicBtn.ToolTip = 'Record a short voice note (click to start/stop)'
+            if ($script:MicRecorderPath -and (Test-Path -LiteralPath $script:MicRecorderPath)) {
+                $att = New-SlopAttachmentFromFile -Path $script:MicRecorderPath
+                Add-SlopPendingAttachment -Attachment $att
+            }
+            return
+        }
+        $tmp = Join-Path ([IO.Path]::GetTempPath()) ("slop-mic-" + [guid]::NewGuid().ToString('N') + '.wav')
+        $script:MicRecorderPath = $tmp
+        [SlopWinMM]::mciSendString('open new type waveaudio alias slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+        $result = [SlopWinMM]::mciSendString('record slopmic', $null, 0, [IntPtr]::Zero)
+        if ($result -ne 0) { throw "winmm record failed (code $result)" }
+        $script:MicRecording = $true
+        $MicBtn.Content = '■'
+        $MicBtn.ToolTip = 'Recording... click to stop'
+    }
+    catch {
+        $script:MicRecording = $false
+        try { [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null } catch {}
+        $MicBtn.Content = '🎤'
+        $MicBtn.ToolTip = 'Record a short voice note (click to start/stop)'
+        Add-Bubble -Text "[error: mic recording unavailable: $($_.Exception.Message)]" -IsUser $false
+    }
+})
 
 $SendBtn.Add_Click($sendAction)
 $StopBtn.Add_Click({ Request-StopStream })

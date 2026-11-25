@@ -41,6 +41,45 @@ Describe 'Slop.Provider' {
         { New-SlopChatRequestBody -SystemPrompt '' -UserText ('x' * 8001) } | Should -Throw
     }
 
+    It 'includes audio attachment as OpenAI-compatible input_audio content part when enabled' {
+        $audio = @{
+            type = 'audio'
+            path = 'C:\fake\clip.wav'
+            name = 'clip.wav'
+            mediaType = 'audio/wav'
+            dataBase64 = 'QUJDRA=='
+        }
+        $body = New-SlopChatRequestBody -SystemPrompt '' -UserText 'transcribe this' -Attachments @($audio) | ConvertFrom-Json
+        $msg = @($body.messages)[-1]
+        $msg.role | Should -Be 'user'
+        @($msg.content).Count | Should -Be 2
+        $msg.content[0].type | Should -Be 'text'
+        $msg.content[0].text | Should -Be 'transcribe this'
+        $msg.content[1].type | Should -Be 'input_audio'
+        $msg.content[1].input_audio.data | Should -Be 'QUJDRA=='
+        $msg.content[1].input_audio.format | Should -Be 'wav'
+    }
+
+    It 'includes image attachment as OpenAI-compatible image_url content part when enabled' {
+        $img = @{
+            type = 'image'
+            name = 'pic.png'
+            mediaType = 'image/png'
+            dataBase64 = 'iVBORw0KGgo='
+        }
+        $body = New-SlopChatRequestBody -SystemPrompt '' -UserText 'what is this?' -Attachments @($img) | ConvertFrom-Json
+        $msg = @($body.messages)[-1]
+        @($msg.content).Count | Should -Be 2
+        $msg.content[1].type | Should -Be 'image_url'
+        $msg.content[1].image_url.url | Should -Match '^data:image/png;base64,'
+    }
+
+    It 'rejects unsupported attachment type or oversized attachment payload' {
+        { New-SlopChatRequestBody -SystemPrompt '' -UserText 'hi' -Attachments @(@{ type='video'; dataBase64='QQ=='; mediaType='video/mp4' }) } | Should -Throw
+        $big = 'A' * 16000001
+        { New-SlopChatRequestBody -SystemPrompt '' -UserText 'hi' -Attachments @(@{ type='audio'; dataBase64=$big; mediaType='audio/wav' }) } | Should -Throw
+    }
+
     It 'plans a custom endpoint without calling the bundled model helpers' {
         $plan = Get-SlopStreamPlan -Config @{
             brain='custom'; endpointUrl='http://127.0.0.1:11434/'; model='qwen3:8b'
@@ -63,7 +102,10 @@ Describe 'Slop.Provider' {
         $routeSrc = Get-Content (Join-Path $PSScriptRoot '../src/Slop.Route.ps1') -Raw
         $routeSrc | Should -Match 'NeedsLocalModelStart=\(-not \[bool\]\$LocalModelProcess\)'
         $routeSrc | Should -Match 'LocalModelPaths=\$paths'
+        $routeSrc | Should -Match 'LocalModelContextSize=\$contextSize'
         $routeSrc | Should -Match 'ReadyToSend=\[bool\]\$LocalModelProcess'
+        $appSrc = Get-Content (Join-Path $PSScriptRoot '../src/Slop.ps1') -Raw
+        $appSrc | Should -Match 'Start-SlopLocalModel -Paths \$Plan\.LocalModelPaths -ContextSize \(\[int\]\$Plan\.LocalModelContextSize\)'
     }
 
     It 'selects the OpenCode route from config, not from an environment escape hatch' {

@@ -29,7 +29,7 @@ if ($m.Success) {
     # bundled brain needed starting, but no worker ever started it, so the first
     # send was refused by port 18080. Guard all three links in that chain.
     Assert-True ($src -match 'Get-SlopStreamPlan[\s\S]{0,240}-LocalModelProcess \$script:LocalModelProcess') 'stream plan receives the already-owned local model process'
-    Assert-True ($src -match 'Start-ThreadJob[\s\S]{0,1200}Start-SlopLocalModel -Paths \$Plan\.LocalModelPaths') 'adapter worker wakes the bundled brain before sending'
+    Assert-True ($src -match 'Start-ThreadJob[\s\S]{0,1400}Start-SlopLocalModel -Paths \$Plan\.LocalModelPaths -ContextSize \(\[int\]\$Plan\.LocalModelContextSize\)') 'adapter worker wakes the bundled brain with configured context size'
     Assert-True ($src -match "tok\.StartsWith\('__SLOPMODEL__'\)") 'UI thread records the worker-started model process for clean shutdown'
     $controls = $w.FindName('ControlDots')
     Assert-True ($controls -is [System.Windows.Controls.Border]) 'control actions are grouped in a separate glass tile'
