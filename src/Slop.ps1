@@ -167,21 +167,16 @@ $xaml = @'
                              FontSize="10" TextWrapping="Wrap" Margin="6,0,6,10"/>
 
                   <Button x:Name="SettingsSaveButton" Content="Save settings" HorizontalAlignment="Left"
-                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,10"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
                           Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                  <TextBlock x:Name="SettingsStatusText" Text="" Foreground="#93A4BD" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
 
                   <TextBlock Text="Startup behaviour" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
                   <Button x:Name="AutostartButton" Content="Autostart: Off" HorizontalAlignment="Left"
                           Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
                   <TextBlock Text="Data location: %LOCALAPPDATA%\Sloppy" Foreground="#8A8A96" FontSize="10"
                              TextWrapping="Wrap" Margin="6,0,6,10"/>
-                  <TextBlock Text="Reset / delete conversation" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-                  <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
-                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-                  <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
-                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-                  <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
-                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
                   <TextBlock x:Name="AboutText" Text="About and version - Sloppy companion v1" Foreground="#8A8A96"
                              FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
                   <TextBlock Text="Advanced / developer" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
@@ -193,44 +188,90 @@ $xaml = @'
             </StackPanel>
 
             <StackPanel x:Name="CustomizePanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <TextBlock Text="Customize" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
-              <TextBlock x:Name="CustomizeNameText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="CustomizeColourText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="CustomizePersonalityText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock Text="Persona text" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
-              <TextBlock x:Name="CustomizePersonaText" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap"
-                         MaxHeight="120" Margin="6,0,6,8"/>
-              <Button x:Name="CustomizeBack" Content="Back to chat" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+                <StackPanel Margin="0,0,4,0">
+                  <TextBlock Text="Customize" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
+                  <TextBlock Text="Name" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="CustomizeNameBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+                  <TextBlock Text="Colour" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="CustomizeColourCombo" Height="26" FontSize="11" Width="180"
+                            HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <TextBlock Text="Personality" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="CustomizePersonalityCombo" Height="26" FontSize="11" Width="180"
+                            HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <TextBlock Text="Persona text" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
+                  <TextBox x:Name="CustomizePersonaBox" Height="110" FontSize="10" AcceptsReturn="True"
+                           TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="6,0,6,8" Padding="6,4"/>
+                  <Button x:Name="CustomizeSaveButton" Content="Save customization" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
+                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                  <TextBlock x:Name="CustomizeStatusText" Text="" Foreground="#93A4BD" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
+                  <Button x:Name="CustomizeBack" Content="Back to chat" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+                </StackPanel>
+              </ScrollViewer>
             </StackPanel>
 
             <StackPanel x:Name="BrainPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <TextBlock Text="Brain" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
-              <TextBlock x:Name="BrainRouteText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="BrainProviderText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="BrainModelText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="BrainAgentText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="BrainProfileText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
-              <TextBlock x:Name="BrainEffectiveText" Foreground="#8A8A96" FontSize="10" Margin="6,0,6,8"/>
-              <TextBlock Text="Change these with the tray menu → Change brain." Foreground="#8A8A96"
-                         FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
-              <Button x:Name="BrainBack" Content="Back to chat" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+                <StackPanel Margin="0,0,4,0">
+                  <TextBlock Text="Brain" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
+                  <TextBlock x:Name="BrainRouteText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
+                  <TextBlock x:Name="BrainEffectiveText" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
+                  <TextBlock Text="Brain type" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="BrainTypeCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <TextBlock Text="Provider" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="BrainProviderBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
+                  <TextBlock Text="Locality" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="BrainLocalityCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <TextBlock Text="Tier" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="BrainTierCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <TextBlock Text="Endpoint URL (custom, loopback only)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="BrainEndpointBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
+                  <TextBlock Text="Model" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="BrainModelBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
+                  <TextBlock Text="Agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="BrainAgentIdBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
+                  <TextBlock Text="Capability profile" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="BrainProfileCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
+                  <Button x:Name="BrainSaveButton" Content="Save brain" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
+                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                  <TextBlock x:Name="BrainStatusText" Text="" Foreground="#93A4BD" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
+                  <Button x:Name="BrainBack" Content="Back to chat" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+                </StackPanel>
+              </ScrollViewer>
             </StackPanel>
 
             <StackPanel x:Name="PrivacyPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <TextBlock Text="Privacy" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
-              <TextBlock Text="Active data route" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <TextBlock x:Name="PrivacyRouteText" Foreground="#DADAE2" FontSize="10" TextWrapping="Wrap"
-                         MaxHeight="110" Margin="6,0,6,8"/>
-              <TextBlock x:Name="PrivacyTermsLink" Foreground="#93C5FD" FontSize="10" TextWrapping="Wrap"
-                         Visibility="Collapsed" Margin="6,0,6,8"/>
-              <TextBlock Text="Deletion scopes" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
-              <TextBlock x:Name="PrivacyConversationCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,4"/>
-              <TextBlock x:Name="PrivacySessionCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,4"/>
-              <TextBlock x:Name="PrivacyLocalDataCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
-              <Button x:Name="PrivacyBack" Content="Back to chat" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+                <StackPanel Margin="0,0,4,0">
+                  <TextBlock Text="Privacy" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
+                  <TextBlock Text="Active data route" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <TextBlock x:Name="PrivacyRouteText" Foreground="#DADAE2" FontSize="10" TextWrapping="Wrap"
+                             MaxHeight="110" Margin="6,0,6,8"/>
+                  <TextBlock x:Name="PrivacyTermsLink" Foreground="#93C5FD" FontSize="10" TextWrapping="Wrap"
+                             Visibility="Collapsed" Margin="6,0,6,8"/>
+                  <TextBlock Text="Deletion scopes" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
+                  <TextBlock x:Name="PrivacyConversationCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,4"/>
+                  <TextBlock x:Name="PrivacySessionCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,4"/>
+                  <TextBlock x:Name="PrivacyLocalDataCopy" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
+                  <TextBlock Text="Deletion actions" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
+                  <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
+                  <TextBlock x:Name="PrivacyStatusText" Text="" Foreground="#93A4BD" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
+                  <Button x:Name="PrivacyBack" Content="Back to chat" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+                </StackPanel>
+              </ScrollViewer>
             </StackPanel>
           </Grid>
         </Grid>
@@ -344,15 +385,21 @@ $VoiceRepairButton = $window.FindName('VoiceRepairButton')
 $VoiceReadyText = $window.FindName('VoiceReadyText')
 foreach ($language in Get-SlopWhisperLanguages) { $VoiceLanguageCombo.Items.Add($language) | Out-Null }
 $SettingsSaveButton = $window.FindName('SettingsSaveButton')
-$CustomizeNameText = $window.FindName('CustomizeNameText')
-$CustomizeColourText = $window.FindName('CustomizeColourText')
-$CustomizePersonalityText = $window.FindName('CustomizePersonalityText')
-$CustomizePersonaText = $window.FindName('CustomizePersonaText')
+$CustomizeNameBox = $window.FindName('CustomizeNameBox')
+$CustomizeColourCombo = $window.FindName('CustomizeColourCombo')
+$CustomizePersonalityCombo = $window.FindName('CustomizePersonalityCombo')
+$CustomizePersonaBox = $window.FindName('CustomizePersonaBox')
+$CustomizeSaveButton = $window.FindName('CustomizeSaveButton')
+$BrainTypeCombo = $window.FindName('BrainTypeCombo')
+$BrainProviderBox = $window.FindName('BrainProviderBox')
+$BrainLocalityCombo = $window.FindName('BrainLocalityCombo')
+$BrainTierCombo = $window.FindName('BrainTierCombo')
+$BrainEndpointBox = $window.FindName('BrainEndpointBox')
+$BrainModelBox = $window.FindName('BrainModelBox')
+$BrainAgentIdBox = $window.FindName('BrainAgentIdBox')
+$BrainProfileCombo = $window.FindName('BrainProfileCombo')
+$BrainSaveButton = $window.FindName('BrainSaveButton')
 $BrainRouteText = $window.FindName('BrainRouteText')
-$BrainProviderText = $window.FindName('BrainProviderText')
-$BrainModelText = $window.FindName('BrainModelText')
-$BrainAgentText = $window.FindName('BrainAgentText')
-$BrainProfileText = $window.FindName('BrainProfileText')
 $BrainEffectiveText = $window.FindName('BrainEffectiveText')
 $PrivacyRouteText = $window.FindName('PrivacyRouteText')
 $PrivacyTermsLink = $window.FindName('PrivacyTermsLink')
@@ -997,25 +1044,92 @@ function Save-SlopSettings {
     $cfg.whisperLanguage = ([string]$VoiceLanguageCombo.Text).Trim().ToLowerInvariant()
     $seconds = 0
     if (-not [int]::TryParse([string]$VoiceMaxSecondsBox.Text, [ref]$seconds)) {
-        Add-SlopThoughtBubble -Text 'Max seconds must be an integer between 10 and 120.'
+        Set-SlopDestinationStatus -Name Settings -Text 'Max seconds must be an integer between 10 and 120.' -Tone 'error'
         return $false
     }
     $cfg.voiceMaxSeconds = $seconds
 
     $check = Test-SlopConfig -Config $cfg
     if (-not $check.Ok) {
-        Add-SlopThoughtBubble -Text "Settings invalid: $($check.Errors -join '; ')"
+        Set-SlopDestinationStatus -Name Settings -Text ("Settings invalid: " + ($check.Errors -join '; ')) -Tone 'error'
+        return $false
+    }
+
+    try { Write-SlopConfig -Config $cfg }
+    catch {
+        Set-SlopDestinationStatus -Name Settings -Text "Settings could not be saved: $($_.Exception.Message)" -Tone 'error'
         return $false
     }
 
     $script:SlopConfigResult.Config = $cfg
     $script:SlopConfigResult.Ok = $true
     $script:SlopConfigResult.Exists = $true
-    Write-SlopConfig -Config $cfg
     $script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
     Initialize-SlopDestinationPanels
     Update-SlopRouteBadgeFromConfig
-    Add-SlopThoughtBubble -Text 'Settings saved.'
+    Set-SlopDestinationStatus -Name Settings -Text 'Settings saved.' -Tone 'success'
+    return $true
+}
+
+function Save-SlopCustomize {
+    $result = Set-SlopConfigIdentity `
+        -Config $script:SlopConfigResult.Config `
+        -Name ([string]$CustomizeNameBox.Text) `
+        -Color ([string]$CustomizeColourCombo.Text) `
+        -Personality ([string]$CustomizePersonalityCombo.Text)
+    if (-not $result.Ok) {
+        Set-SlopDestinationStatus -Name Customize -Text ("Customize invalid: " + ($result.Errors -join '; ')) -Tone 'error'
+        return $false
+    }
+
+    $personaText = [string]$CustomizePersonaBox.Text
+    try {
+        Write-SlopPersona -Text $personaText
+        Write-SlopConfig -Config $result.Config
+    }
+    catch {
+        Set-SlopDestinationStatus -Name Customize -Text "Customize could not be saved: $($_.Exception.Message)" -Tone 'error'
+        return $false
+    }
+
+    $script:SlopConfigResult.Config = $result.Config
+    $script:SlopConfigResult.Ok = $true
+    $script:SlopConfigResult.Exists = $true
+    Update-SlopIdentityFromConfig
+    Initialize-SlopDestinationPanels
+    Update-SlopRouteBadgeFromConfig
+    Set-SlopDestinationStatus -Name Customize -Text 'Customize saved.' -Tone 'success'
+    return $true
+}
+
+function Save-SlopBrain {
+    $result = Set-SlopConfigBrain `
+        -Config $script:SlopConfigResult.Config `
+        -Brain ([string]$BrainTypeCombo.Text) `
+        -Provider ([string]$BrainProviderBox.Text) `
+        -ProviderLocality ([string]$BrainLocalityCombo.Text) `
+        -ProviderTier ([string]$BrainTierCombo.Text) `
+        -EndpointUrl ([string]$BrainEndpointBox.Text) `
+        -Model ([string]$BrainModelBox.Text) `
+        -AgentId ([string]$BrainAgentIdBox.Text) `
+        -CapabilityProfile ([string]$BrainProfileCombo.Text)
+    if (-not $result.Ok) {
+        Set-SlopDestinationStatus -Name Brain -Text ("Brain invalid: " + ($result.Errors -join '; ')) -Tone 'error'
+        return $false
+    }
+
+    try { Write-SlopConfig -Config $result.Config }
+    catch {
+        Set-SlopDestinationStatus -Name Brain -Text "Brain could not be saved: $($_.Exception.Message)" -Tone 'error'
+        return $false
+    }
+
+    $script:SlopConfigResult.Config = $result.Config
+    $script:SlopConfigResult.Ok = $true
+    $script:SlopConfigResult.Exists = $true
+    Initialize-SlopDestinationPanels
+    Update-SlopRouteBadgeFromConfig
+    Set-SlopDestinationStatus -Name Brain -Text 'Brain saved.' -Tone 'success'
     return $true
 }
 
@@ -1037,28 +1151,70 @@ function Update-SlopRouteBadgeFromConfig {
     Set-SlopRouteBadge -StreamPlan $badgePlan
 }
 
+function Update-SlopIdentityFromConfig {
+    $cfg = $script:SlopConfigResult.Config
+    if (-not $cfg) { return }
+    $script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
+        [System.Windows.Media.BrushConverter]::new().ConvertFromString(
+            (Get-SlopIdentityColor -ColorKey ([string]$cfg.color))).Color)
+    $IdentityRing.Fill = $script:IdentityBrush
+}
+
+function Set-SlopComboItems {
+    param(
+        [Parameter(Mandatory)][System.Windows.Controls.ComboBox]$Combo,
+        [Parameter(Mandatory)][object[]]$Items,
+        [AllowEmptyString()][string]$Selected
+    )
+    $Combo.Items.Clear()
+    foreach ($item in $Items) { $Combo.Items.Add($item) | Out-Null }
+    $Combo.SelectedItem = $Selected
+}
+
+function Set-SlopDestinationStatus {
+    param(
+        [Parameter(Mandatory)][ValidateSet('Settings','Customize','Brain','Privacy')][string]$Name,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
+        [ValidateSet('info','success','error')][string]$Tone = 'info'
+    )
+    $contract = Get-SlopDestinationContract -Name $Name
+    $status = $window.FindName($contract.Status)
+    if (-not $status) { return }
+    $color = switch ($Tone) {
+        'success' { '#86EFAC' }
+        'error'   { '#FCA5A5' }
+        default   { '#93A4BD' }
+    }
+    $status.Text = $Text
+    $status.Foreground = [System.Windows.Media.BrushConverter]::new().ConvertFromString($color)
+}
+
 function Initialize-SlopDestinationPanels {
     $cfg = $script:SlopConfigResult.Config
     $kind = Resolve-SlopRouteKind -Config $cfg
     $agent = if ($cfg.agent) { $cfg.agent } else { @{} }
     $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
-    $locality = if ($cfg.providerLocality) { [string]$cfg.providerLocality } else { 'n/a' }
+    $locality = if ($cfg.providerLocality) { [string]$cfg.providerLocality } else { '' }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
 
     Load-SlopSettings
 
-    $CustomizeNameText.Text = "Name: $($cfg.name)"
-    $CustomizeColourText.Text = "Colour: $($cfg.color)"
-    $CustomizePersonalityText.Text = "Personality: $($cfg.personality)"
+    Set-SlopComboItems -Combo $CustomizeColourCombo -Items @( (Get-SlopIdentityColors).Keys | Sort-Object ) -Selected ([string]$cfg.color)
+    Set-SlopComboItems -Combo $CustomizePersonalityCombo -Items @( Get-SlopPersonalities ) -Selected ([string]$cfg.personality)
+    $CustomizeNameBox.Text = [string]$cfg.name
     $personaPath = Get-SlopPersonaPath
-    $persona = if (Test-Path -LiteralPath $personaPath) { (Get-Content -LiteralPath $personaPath -Raw).Trim() } else { '' }
-    $CustomizePersonaText.Text = if ($persona) { $persona } else { 'No persona text yet.' }
+    $persona = if (Test-Path -LiteralPath $personaPath) { Get-Content -LiteralPath $personaPath -Raw } else { '' }
+    $CustomizePersonaBox.Text = $persona
 
-    $BrainRouteText.Text = "Local vs remote: $kind / $locality"
-    $BrainProviderText.Text = "Provider: $provider"
-    $BrainModelText.Text = "Model: $effective"
-    $BrainAgentText.Text = "Agent: $(if ($cfg.agentId) { [string]$cfg.agentId } else { 'n/a' })"
-    $BrainProfileText.Text = "Capability profile: $(if ($cfg.capabilityProfile) { [string]$cfg.capabilityProfile } else { 'n/a' })"
+    Set-SlopComboItems -Combo $BrainTypeCombo -Items @( Get-SlopBrains ) -Selected ([string]$cfg.brain)
+    Set-SlopComboItems -Combo $BrainLocalityCombo -Items @('', 'local', 'remote') -Selected $locality
+    Set-SlopComboItems -Combo $BrainTierCombo -Items @('free', 'paid') -Selected ([string]$cfg.providerTier)
+    Set-SlopComboItems -Combo $BrainProfileCombo -Items @( Get-SlopCapabilityProfiles ) -Selected ([string]$cfg.capabilityProfile)
+    $BrainProviderBox.Text = [string]$cfg.provider
+    $BrainEndpointBox.Text = [string]$cfg.endpointUrl
+    $BrainModelBox.Text = if ([string]::IsNullOrWhiteSpace([string]$cfg.model)) { [string]$cfg.modelName } else { [string]$cfg.model }
+    $BrainAgentIdBox.Text = [string]$cfg.agentId
+    $BrainRouteText.Text = "Local vs remote: $kind / $(if ($locality) { $locality } else { 'n/a' })"
     $BrainEffectiveText.Text = "Effective model: $effective"
 
     $terms = if ($cfg.termsUrl) { [string]$cfg.termsUrl } else { '' }
@@ -1066,7 +1222,7 @@ function Initialize-SlopDestinationPanels {
         Kind = $kind; Provider = $provider; Model = $effective
     } -TermsUrl $terms
     $PrivacyTermsLink.Text = $terms
-    $PrivacyTermsLink.Visibility = if ($terms) { 'Visible' } else { 'Collapsed' }
+    $PrivacyTermsLink.Visibility = if ($terms) { [System.Windows.Visibility]::Visible } else { [System.Windows.Visibility]::Collapsed }
     $PrivacyConversationCopy.Text = Get-SlopDeletionCopy -Action 'conversation'
     $PrivacySessionCopy.Text = Get-SlopDeletionCopy -Action 'session'
     $PrivacyLocalDataCopy.Text = Get-SlopDeletionCopy -Action 'local-data'
@@ -1085,6 +1241,7 @@ function Show-SlopDestination {
     }
     $ChatScroll.Visibility = if ($Name -eq '__chat__') { 'Visible' } else { 'Collapsed' }
     if ($Name -eq '__chat__') { return }
+    Set-SlopDestinationStatus -Name $Name -Text '' -Tone 'info'
     Initialize-SlopDestinationPanels
     $panel = $window.FindName(($Name + 'Panel'))
     if ($null -ne $panel) { $panel.Visibility = 'Visible' }
@@ -1152,16 +1309,16 @@ function Remove-SlopOpenCodeSession {
         foreach ($h in $auth.GetEnumerator()) { $req.Headers.TryAddWithoutValidation($h.Key, $h.Value) | Out-Null }
         $resp = $client.SendAsync($req).GetAwaiter().GetResult()
         if (-not $resp.IsSuccessStatusCode) {
-            Add-Bubble -Text "[error: could not delete OpenCode session: $($resp.StatusCode)]" -IsUser $false
+            Set-SlopDestinationStatus -Name Privacy -Text "OpenCode session could not be deleted: $($resp.StatusCode)" -Tone 'error'
             return $false
         }
         $script:OpenCodeSessionId = $null
         $script:SlopConfigResult.Config.openCodeSessionId = $null
-        Add-Bubble -Text 'OpenCode session and its child sessions deleted. Any copy held by a model provider is not affected.' -IsUser $false
+        Set-SlopDestinationStatus -Name Privacy -Text 'OpenCode session and its child sessions deleted. Any copy held by a model provider is not affected.' -Tone 'success'
         return $true
     }
     catch {
-        Add-Bubble -Text "[error: could not delete OpenCode session: $($_.Exception.Message)]" -IsUser $false
+        Set-SlopDestinationStatus -Name Privacy -Text "OpenCode session could not be deleted: $($_.Exception.Message)" -Tone 'error'
         return $false
     }
     finally { if ($client) { $client.Dispose() } }
@@ -1180,11 +1337,27 @@ function Remove-SlopLocalData {
 function Invoke-SlopDeletion {
     param([Parameter(Mandatory)][ValidateSet('conversation','session','local-data')][string]$Action)
     $scope = Get-SlopDeletionScope -Action $Action
-    if (-not (Show-SlopConfirm -Text $scope.Copy)) { return }
+    if (-not (Show-SlopConfirm -Text $scope.Copy)) {
+        Set-SlopDestinationStatus -Name Privacy -Text 'Deletion cancelled.' -Tone 'info'
+        return
+    }
     switch ($Action) {
-        'conversation' { $ChatStack.Children.Clear() }
-        'session'      { if ($script:OpenCodeSessionId) { Remove-SlopOpenCodeSession -SessionId $script:OpenCodeSessionId } }
-        'local-data'   { Remove-SlopLocalData }
+        'conversation' {
+            $ChatStack.Children.Clear()
+            Set-SlopDestinationStatus -Name Privacy -Text 'Conversation cleared on this device.' -Tone 'success'
+        }
+        'session' {
+            if ($script:OpenCodeSessionId) {
+                Remove-SlopOpenCodeSession -SessionId $script:OpenCodeSessionId
+            }
+            else {
+                Set-SlopDestinationStatus -Name Privacy -Text 'No OpenCode session id is stored.' -Tone 'info'
+            }
+        }
+        'local-data' {
+            Remove-SlopLocalData
+            Set-SlopDestinationStatus -Name Privacy -Text 'Local config and persona removed. Onboarding reopened.' -Tone 'success'
+        }
     }
 }
 
@@ -1201,6 +1374,8 @@ $AutostartButton.Add_Click({
     $AutostartButton.Content = "Autostart: $(if ($script:SlopConfigResult.Config.autostart) { 'On' } else { 'Off' })"
 })
 $SettingsSaveButton.Add_Click({ param($s,$e) Save-SlopSettings | Out-Null })
+$CustomizeSaveButton.Add_Click({ param($s,$e) Save-SlopCustomize | Out-Null })
+$BrainSaveButton.Add_Click({ param($s,$e) Save-SlopBrain | Out-Null })
 $VoiceRepairButton.Add_Click({
     try {
         $report = Invoke-SlopPreflight -InstallRoot $script:VoiceInstallRoot -ConfigPath (Get-SlopConfigPath)
@@ -1921,10 +2096,7 @@ elseif (-not $script:SlopConfigResult.Ok) {
 Set-SlopMicUiState -State idle
 $script:LocalModelProcess = $null
 $script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $script:SlopConfigResult.Config
-$script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
-    [System.Windows.Media.BrushConverter]::new().ConvertFromString(
-        (Get-SlopIdentityColor -ColorKey $script:SlopConfigResult.Config.color)).Color)
-$IdentityRing.Fill = $script:IdentityBrush
+Update-SlopIdentityFromConfig
 
 # Show the configured route from the very first frame, not just after a send.
 Update-SlopRouteBadgeFromConfig
