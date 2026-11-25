@@ -21,6 +21,17 @@ It is local-first and quiet. There is no cloud account and no telemetry. Sloppy 
 - **Stop means stop.** Cancellation reaches the streaming reader itself, not just the initial request.
 - **Small and inspectable.** A WPF / PowerShell frontend with headless tests, a live UI verifier and an 18-step source CodeTour.
 
+## Architecture (compact)
+
+`mermaid
+flowchart LR
+  User[?? You] --> UI[?? Sloppy WPF companion]
+  UI --> Route[?? Route planner]
+  Route -->|Tier 1 local| Llama[?? llama.cpp + Gemma GGUF]
+  Route -->|Tier 2 agentic| OC[?? OpenCode + tools/permissions]
+  UI --> State[? Streaming/thinking/success/error states]
+`
+
 ## How it works
 
 ```text
@@ -49,6 +60,22 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 - Teach it to play digital hide-and-seek: it follows your cursor, hides, peeks
 - Turn on System Sense and it leaves thought bubbles when your CPU, RAM, or disk misbehaves
 
+## ?? Stack
+
+| Layer | Technology | Notes |
+|---|---|---|
+| UI | PowerShell 7 + WPF/XAML | Native Windows companion |
+| Tier 1 | llama.cpp + Gemma 4 E2B GGUF | Bundled local/default path |
+| Tier 2 | OpenCode service/SSE | Agentic tools, permissions, audit |
+| Tests | Pester 6 | Headless contracts + shell checks |
+
+## ?? Provisioning
+
+`powershell
+# Prereqs: Windows, PowerShell 7+, OpenCode service configured
+# Large runtime/models are Git LFS-tracked: git lfs pull
+`
+
 ## Quick start
 
 There is no installer yet. The honest current path is:
@@ -65,6 +92,14 @@ Requirements:
 - Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
 Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain is text-only in the current request path; multimodal runtime hooks are ready, but image/audio capture and request wiring are not shipped yet.
+
+## ?? Playbook (short)
+
+1. **Scope**: small always-on companion, local-first, honest states.
+2. **Shell**: WPF overlay + tray + clear visual state model.
+3. **Brains**: Tier 1 local default, Tier 2 OpenCode opt-in upgrade.
+4. **Safety**: permissioned agent actions, no credential leakage, no fake live claims.
+5. **Verify**: Pester contracts, tour anchors, live smoke before claiming UI behavior.
 
 ## What it is not
 

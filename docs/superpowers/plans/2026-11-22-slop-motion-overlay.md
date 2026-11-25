@@ -830,7 +830,7 @@ Run:
 ```powershell
 pwsh -NoProfile -File tests/slop-motion-check.ps1
 pwsh -STA -NoProfile -File tools/verify-motion.ps1
-pwsh -NoProfile -File 'C:\Users\example\.agents\scripts\review.ps1'
+pwsh -NoProfile -File '<agent-home>/scripts/review.ps1'
 ```
 
 Expected:
@@ -854,3 +854,4 @@ git commit -m "test: add live motion verification harness"
 **Placeholder scan:** no TBD/TODO; every code step has full code and exact commands.
 
 **Type consistency:** `New-SlopSpring`, `Step-SlopSpring`, `New-SlopMotionState`, `Update-SlopMotionState`, `Set-SlopMotionMood`, `Set-SlopFrameTarget`, `Test-SlopClientAreaAnimation` are defined in Task 2 and used with the same names/signatures in Tasks 3-5. `Set-SlopMood` (UI color wrapper) is distinct from `Set-SlopMotionMood` (state only).
+

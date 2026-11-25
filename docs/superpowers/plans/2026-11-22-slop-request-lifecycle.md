@@ -596,12 +596,12 @@ Expected: `SIGNAL chat-open ...`, `SIGNAL thinking ...`, `SIGNAL success ...`, `
 
 - [ ] **Step 2: Run the verify gate**
 
-Run: the `verify` skill / `C:\Users\example\.agents\scripts\verify.ps1`
+Run: the `verify` skill / `<agent-home>/scripts/verify.ps1`
 Expected: `=== VERIFY COMPLETE === All gates passed.`
 
 - [ ] **Step 3: Run the review gate**
 
-Run: the `review` skill / `C:\Users\example\.agents\scripts\review.ps1`
+Run: the `review` skill / `<agent-home>/scripts/review.ps1`
 Expected: advisory pass; note the existing `source changed but no *.Tests.ps1 found` warning is expected because this repo uses `*check.ps1` names.
 
 - [ ] **Step 4: Confirm clean branch state**
@@ -620,3 +620,4 @@ Placeholder scan: no TBD, TODO, or "similar to" steps. Every code step contains 
 Type consistency: `Generation` is `[int]` everywhere; `Now` is `[datetime]` everywhere; marker spellings are `__DONE__`, `__CONNECTED__`, `__WARN__`, `__ERR__` in both the module and the job/closure; `Finish-Stream` is called with `-Generation` only from the timer.
 
 Known constraint: do not dispatch subagents for this plan — the user has an explicit cost constraint. Execute inline with `executing-plans`.
+
