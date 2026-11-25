@@ -13,7 +13,7 @@ $m = [regex]::Match($src, '\$xaml = @''\r?\n(?<xaml>.*?)\r?\n''@', 'Singleline')
 Assert-True $m.Success 'XAML here-string found'
 if ($m.Success) {
     $w = [System.Windows.Markup.XamlReader]::Parse($m.Groups['xaml'].Value)
-    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','AttachBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing')) {
+    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','AttachBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     # Four quiet destinations: each panel and its read-only views must exist.
@@ -151,6 +151,17 @@ Assert-True ($src -match 'Animate-BrushTo -Brush \$script:HighlightBrush') 'high
 Assert-True ($src -match '\$script:WorkArea = \[System\.Windows\.SystemParameters\]::WorkArea') 'work area is cached in script scope'
 Assert-True ($src -match '\$maxLeft = \[Math\]::Max\(\$wa\.X, \$wa\.Right - \$window\.ActualWidth\)') 'wander clamps against the work area'
 Assert-True ($src -match '\$window\.Left = \[Math\]::Min\(\$maxLeft') 'wander writes the clamped left position'
+
+Assert-True ($src -match 'Slop\.Audio\.ps1') 'headless audio module is dot-sourced by the shell'
+Assert-True ($src -match 'slop-preflight\.ps1') 'preflight tool is dot-sourced by the shell'
+Assert-True ($src -match '\$VoiceEnabledCheck\.IsChecked = \[bool\]\$cfg\.voiceEnabled') 'Settings loads voiceEnabled from config'
+Assert-True ($src -match '\$VoiceLanguageCombo\.Text = \[string\]\$cfg\.whisperLanguage') 'Settings loads whisperLanguage from config'
+Assert-True ($src -match '\$VoiceMaxSecondsBox\.Text = \[string\]\$cfg\.voiceMaxSeconds') 'Settings loads voiceMaxSeconds from config'
+Assert-True ($src -match '\$cfg\.voiceEnabled = \[bool\]\$VoiceEnabledCheck\.IsChecked') 'Settings saves voiceEnabled'
+Assert-True ($src -match '\$cfg\.whisperLanguage = \(\[string\]\$VoiceLanguageCombo\.Text\)\.Trim\(\)\.ToLowerInvariant\(\)') 'Settings saves a normalized whisperLanguage'
+Assert-True ($src -match '\[int\]::TryParse\(\[string\]\$VoiceMaxSecondsBox\.Text') 'Settings saves a validated voiceMaxSeconds'
+Assert-True ($src -match 'Invoke-SlopPreflight -InstallRoot \$script:VoiceInstallRoot') 'Repair voice runs the report-only preflight'
+Assert-True ($src -match 'Get-SlopVoiceReadinessText -Config \$cfg') 'Settings shows exact Whisper readiness'
 
 Describe 'Slop shell / XAML static checks' {
     foreach ($check in $script:SlopChecks) {
