@@ -87,10 +87,10 @@ Requirements:
 - Windows
 - PowerShell 7.6 or later, in STA mode
 - Git LFS (to fetch bundled runtime/model artifacts in a source checkout)
-- Optional for voice: bundled `whisper-cli.exe` and `ggml-small.bin` under `runtime/whisper/` (Git LFS)
+- Optional for voice: supply `whisper-cli.exe` and `ggml-small.bin` under `runtime/whisper/` yourself; LFS rules are configured, but these artifacts are not bundled in this checkout (live mic/Whisper smoke deferred)
 - Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
-Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain answers text locally, and opt-in push-to-talk audio is transcribed locally by bundled Whisper small before being sent through the same text path. Nothing is uploaded for Tier 1. Image capture and `mmproj` remain unused readiness hooks; there are no spoken replies.
+Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain answers text locally, and opt-in push-to-talk audio is transcribed locally by Whisper small (CLI and model supplied by you) before being sent through the same text path. Nothing is uploaded for Tier 1. Image capture and `mmproj` remain unused readiness hooks; there are no spoken replies.
 
 ## 📋 Playbook (short)
 

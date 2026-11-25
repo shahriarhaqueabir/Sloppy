@@ -35,3 +35,9 @@ runtime/models/**/.cache/
 runtime/**/.cache/
 runtime/**/*.tmp
 runtime/**/*.download
+
+# Internal recon/alignment and execution scaffolding (kept locally, not published)
+docs/release-readiness.md
+docs/sloppy-public-psloppy-alignment.md
+docs/plans/2026-11-25-tier1-local-text-and-voice-design.md
+docs/plans/2026-11-25-tier1-local-text-and-voice-plan.md
