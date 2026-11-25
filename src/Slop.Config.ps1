@@ -254,5 +254,90 @@ function Write-SlopPersona {
     )
     $dir = Split-Path -Parent $PersonaPath
     New-Item -ItemType Directory -Path $dir -Force | Out-Null
+    if (Test-Path -LiteralPath $PersonaPath) {
+        Copy-Item -LiteralPath $PersonaPath -Destination "$PersonaPath.bak" -Force
+    }
     [IO.File]::WriteAllText($PersonaPath, $Text, [Text.UTF8Encoding]::new($false))
+}
+
+function Set-SlopConfigIdentity {
+    param(
+        [Parameter(Mandatory)][hashtable]$Config,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Name,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Color,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Personality
+    )
+    $candidate = @{} + $Config
+    $candidate.name = ([string]$Name).Trim()
+    $candidate.color = ([string]$Color).Trim().ToLowerInvariant()
+    $candidate.personality = ([string]$Personality).Trim().ToLowerInvariant()
+    $check = Test-SlopConfig -Config $candidate
+    return @{
+        Ok     = [bool]$check.Ok
+        Config = $candidate
+        Errors = @($check.Errors)
+    }
+}
+
+function Set-SlopConfigBrain {
+    param(
+        [Parameter(Mandatory)][hashtable]$Config,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Brain,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Provider,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$ProviderLocality,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$ProviderTier,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$EndpointUrl,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Model,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$AgentId,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$CapabilityProfile
+    )
+    $candidate = @{} + $Config
+    $errors = [Collections.Generic.List[string]]::new()
+    $modelValue = ([string]$Model).Trim()
+
+    $candidate.brain = ([string]$Brain).Trim().ToLowerInvariant()
+    $candidate.provider = ([string]$Provider).Trim()
+    $candidate.providerLocality = ([string]$ProviderLocality).Trim().ToLowerInvariant()
+    $candidate.providerTier = ([string]$ProviderTier).Trim().ToLowerInvariant()
+    $candidate.endpointUrl = ([string]$EndpointUrl).Trim().TrimEnd('/')
+    $candidate.model = $modelValue
+    $candidate.modelName = $modelValue
+    $candidate.agentId = ([string]$AgentId).Trim()
+    if ([string]::IsNullOrWhiteSpace($candidate.agentId)) { $candidate.agentId = 'sloppy' }
+    $candidate.capabilityProfile = ([string]$CapabilityProfile).Trim().ToLowerInvariant()
+    $candidate.agent = @{}
+
+    if ($candidate.brain -notin @('builtin', 'custom', 'opencode')) {
+        $errors.Add('brain choice is unknown')
+    }
+    switch ($candidate.brain) {
+        'builtin' {
+            $candidate.provider = ''
+            $candidate.providerLocality = ''
+            $candidate.providerTier = 'free'
+            $candidate.endpointUrl = ''
+            $candidate.model = ''
+            $candidate.modelName = ''
+        }
+        'custom' {
+            $candidate.provider = ''
+            $candidate.providerLocality = ''
+            $candidate.providerTier = 'free'
+            $candidate.agentId = 'sloppy'
+            $candidate.capabilityProfile = 'companion'
+            if ([string]::IsNullOrWhiteSpace($modelValue)) { $errors.Add('custom model is required') }
+        }
+        'opencode' {
+            $candidate.endpointUrl = ''
+            if ([string]::IsNullOrWhiteSpace($modelValue)) { $errors.Add('opencode model is required') }
+        }
+    }
+
+    $check = Test-SlopConfig -Config $candidate
+    foreach ($message in $check.Errors) { $errors.Add($message) }
+    return @{
+        Ok     = ($errors.Count -eq 0)
+        Config = $candidate
+        Errors = $errors.ToArray()
+    }
 }
