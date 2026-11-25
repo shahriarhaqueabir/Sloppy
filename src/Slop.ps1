@@ -13,6 +13,8 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 # Sloppy companion modules. Order matters: Provider/Onboarding/Route depend on
 # Config; Route also needs OpenCodeProfile, LocalModel and the OpenCode bridge.
 . (Join-Path $PSScriptRoot 'Slop.Config.ps1')
+. (Join-Path $PSScriptRoot 'Slop.Audio.ps1')
+. (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools/slop-preflight.ps1')
 . (Join-Path $PSScriptRoot 'Slop.LocalModel.ps1')
 . (Join-Path $PSScriptRoot 'Slop.OpenCodeProfile.ps1')
 . (Join-Path $PSScriptRoot 'Slop.Provider.ps1')
@@ -23,6 +25,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 # Disclosure acceptance is per app lifetime; never persisted.
 $script:SlopDisclosureAccepted = $false
 $script:PendingAttachments = [System.Collections.Generic.List[hashtable]]::new()
+$script:VoiceInstallRoot = Get-SlopVoiceInstallRoot
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -148,6 +151,21 @@ $xaml = @'
                   <TextBox x:Name="SettingsBaseUrlBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
                   <TextBlock Text="OpenCode agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="SettingsAgentIdBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+
+                  <TextBlock Text="Voice input" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <CheckBox x:Name="VoiceEnabledCheck" Content="Voice enabled (local transcription, off by default)"
+                            Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,6"/>
+                  <TextBlock Text="Language" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="VoiceLanguageCombo" Height="26" FontSize="11" Margin="6,0,6,6" Width="140"
+                            HorizontalAlignment="Left"/>
+                  <TextBlock Text="Max seconds" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="VoiceMaxSecondsBox" Height="26" FontSize="11" Width="80" Margin="6,0,6,6"
+                           HorizontalAlignment="Left" Padding="6,3" VerticalContentAlignment="Center"/>
+                  <Button x:Name="VoiceRepairButton" Content="Repair voice" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
+                          Background="#22FFFFFF" Foreground="#EAEAEA" Padding="10,4"/>
+                  <TextBlock x:Name="VoiceReadyText" Text="Whisper readiness: unknown" Foreground="#8A8A96"
+                             FontSize="10" TextWrapping="Wrap" Margin="6,0,6,10"/>
 
                   <Button x:Name="SettingsSaveButton" Content="Save settings" HorizontalAlignment="Left"
                           Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,10"
@@ -324,6 +342,12 @@ $SettingsInstructionsBox = $window.FindName('SettingsInstructionsBox')
 $SettingsModelBox = $window.FindName('SettingsModelBox')
 $SettingsBaseUrlBox = $window.FindName('SettingsBaseUrlBox')
 $SettingsAgentIdBox = $window.FindName('SettingsAgentIdBox')
+$VoiceEnabledCheck = $window.FindName('VoiceEnabledCheck')
+$VoiceLanguageCombo = $window.FindName('VoiceLanguageCombo')
+$VoiceMaxSecondsBox = $window.FindName('VoiceMaxSecondsBox')
+$VoiceRepairButton = $window.FindName('VoiceRepairButton')
+$VoiceReadyText = $window.FindName('VoiceReadyText')
+foreach ($language in Get-SlopWhisperLanguages) { $VoiceLanguageCombo.Items.Add($language) | Out-Null }
 $SettingsSaveButton = $window.FindName('SettingsSaveButton')
 $CustomizeNameText = $window.FindName('CustomizeNameText')
 $CustomizeColourText = $window.FindName('CustomizeColourText')
@@ -939,6 +963,15 @@ function Get-SlopEffectiveOpenCodeBaseUrl {
     return $url.Trim().TrimEnd('/')
 }
 
+function Update-SlopVoiceReadinessUi {
+    $cfg = $script:SlopConfigResult.Config
+    if ($null -eq $cfg) { return }
+    $VoiceEnabledCheck.IsChecked = [bool]$cfg.voiceEnabled
+    $VoiceLanguageCombo.Text = [string]$cfg.whisperLanguage
+    $VoiceMaxSecondsBox.Text = [string]$cfg.voiceMaxSeconds
+    $VoiceReadyText.Text = 'Whisper readiness: ' + (Get-SlopVoiceReadinessText -Config $cfg -InstallRoot $script:VoiceInstallRoot)
+}
+
 function Load-SlopSettings {
     $cfg = $script:SlopConfigResult.Config
     if ($null -eq $cfg) { return }
@@ -948,6 +981,7 @@ function Load-SlopSettings {
     $SettingsModelBox.Text = $model
     $SettingsBaseUrlBox.Text = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
     $SettingsAgentIdBox.Text = [string]$cfg.agentId
+    Update-SlopVoiceReadinessUi
 }
 
 function Save-SlopSettings {
@@ -961,6 +995,14 @@ function Save-SlopSettings {
     $cfg.openCodeBaseUrl = ([string]$SettingsBaseUrlBox.Text).Trim().TrimEnd('/')
     $cfg.agentId = ([string]$SettingsAgentIdBox.Text).Trim()
     if ([string]::IsNullOrWhiteSpace([string]$cfg.agentId)) { $cfg.agentId = 'sloppy' }
+    $cfg.voiceEnabled = [bool]$VoiceEnabledCheck.IsChecked
+    $cfg.whisperLanguage = ([string]$VoiceLanguageCombo.Text).Trim().ToLowerInvariant()
+    $seconds = 0
+    if (-not [int]::TryParse([string]$VoiceMaxSecondsBox.Text, [ref]$seconds)) {
+        Add-SlopThoughtBubble -Text 'Max seconds must be an integer between 10 and 120.'
+        return $false
+    }
+    $cfg.voiceMaxSeconds = $seconds
 
     $check = Test-SlopConfig -Config $cfg
     if (-not $check.Ok) {
@@ -1156,6 +1198,14 @@ $AutostartButton.Add_Click({
     $AutostartButton.Content = "Autostart: $(if ($script:SlopConfigResult.Config.autostart) { 'On' } else { 'Off' })"
 })
 $SettingsSaveButton.Add_Click({ param($s,$e) Save-SlopSettings | Out-Null })
+$VoiceRepairButton.Add_Click({
+    try {
+        $report = Invoke-SlopPreflight -InstallRoot $script:VoiceInstallRoot -ConfigPath (Get-SlopConfigPath)
+        Add-SlopThoughtBubble -Text ($report.Lines -join "`n")
+        Update-SlopVoiceReadinessUi
+    }
+    catch { Add-SlopThoughtBubble -Text "Voice repair failed: $($_.Exception.Message)" }
+})
 $DeleteConversationButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'conversation' })
 $DeleteSessionButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'session' })
 $DeleteLocalDataButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'local-data' })
