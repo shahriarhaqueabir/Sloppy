@@ -756,7 +756,7 @@ Expected: each exits 0, with `ALL ... CHECKS PASSED` or `TEST_EXIT=0`.
 
 - [ ] **Step 5: Run the project Verify gate**
 
-Run: `pwsh -NoProfile -File C:\Users\example\.agents\scripts\verify.ps1`
+Run: `pwsh -NoProfile -File <agent-home>/scripts/verify.ps1`
 Expected: `VERIFY_EXIT=0`, `All gates passed.`
 
 - [ ] **Step 6: Final status**
@@ -777,3 +777,4 @@ Expected: `## main` with a clean working tree (the pre-existing untracked `asset
 - Keep signal table and exact-RGB verifier: Tasks 2 and 7, plus the geometry test's verifier-point assertions.
 - `slopsettings` future intent: Task 3 (inert dot + ToolTip), documented in Task 6.
 - No OpenCode/permission/persona/service changes: none of the tasks touch those files.
+

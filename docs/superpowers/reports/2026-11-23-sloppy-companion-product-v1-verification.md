@@ -43,7 +43,7 @@ complete a usable OpenCode send path or a fully editable Customize destination.
   report and the two follow-up code-fix plans. The exact staged index scan found no Jes‑e identifier,
   user machine path, key/token pattern, credential file, `.memory`, or `.opencode` file. The only
   personal-name matches are the previously accepted MIT attribution and its quoted documentation;
-  `C:\Users\example` occurrences are synthetic placeholders. No password value was found; matches
+  `<user-home>` occurrences are synthetic placeholders. No password value was found; matches
   are code that obtains a password at runtime and clearly synthetic test examples. The README no
   longer requires a repo-local OpenCode config. Do not add a remote to this staging repo until you
   have reviewed its staged contents yourself.
@@ -159,7 +159,7 @@ could not catch — green unit tests are not live proof.
 ### 1.8 PII / history scrub scan
 
 ```
-git grep -n -I -E 'shahr|Users[\\/]shahr|E:[\\/]Projects|/home/shahr|sk-[A-Za-z0-9]{10}|ghp_[A-Za-z0-9]{10}|AKIA[A-Z0-9]{12}' -- .
+git grep -n -I -E '<redacted-user>|Users[\\/]<redacted-user>|[A-Z]:[\\/]Projects|/home/<redacted-user>|sk-[A-Za-z0-9]{10}|ghp_[A-Za-z0-9]{10}|AKIA[A-Z0-9]{12}' -- .
 ```
 
 Result: four matches, all intentional: `LICENSE:3` (`Copyright (c) 2026 shahr`), the quoted copy in
@@ -217,3 +217,4 @@ the public artifact, that is a separate user-owned decision affecting historical
   target-model memory measurement, and the deferred live onboarding/Stop probes.
 - No commit, push, deploy or CI/CD change was made during the review. Phase 1 and partial Phase 2 files
   remain staged for the user to review and commit; the report correction itself is an unstaged edit.
+
