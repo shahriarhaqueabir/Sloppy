@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/sloppy.png" alt="Sloppy, a small desktop companion" width="320">
+  <img src="assets/Sloppy.gif" alt="Sloppy demo — animated desktop companion reacting to agent state" width="400">
+</p>
+
+<p align="center">
+  <a href="assets/Sloppy.mp4">▶ Watch the full-quality video (MP4)</a>
 </p>
 
 # Sloppy
