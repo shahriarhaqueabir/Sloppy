@@ -2,13 +2,17 @@
   <img src="assets/Sloppy.gif" alt="Sloppy demo — animated desktop companion reacting to agent state" width="400">
 </p>
 
+<p align="center">
+  <a href="assets/Sloppy.mp4">▶ Watch the full-quality video (MP4)</a>
+</p>
+
 # Sloppy
 
 **A tiny desktop companion that makes your local coding agent visible — and easier to trust.**
 
 Sloppy sits on your desktop as an animated pea. It changes colour, shape and motion with what your agent is actually doing: thinking, working, waiting on a tool, stalled, asking permission, or finishing a reply. When OpenCode asks for approval, the decision appears in the chat as **Allow / Allow once / Reject** instead of hiding in a log.
 
-It is local-first and quiet. There is no cloud account, no telemetry, and no model bundled here. You bring your own [OpenCode](https://opencode.ai/) setup; Sloppy is the face and the permission surface for it, talking to a local service over loopback HTTP.
+It is local-first and quiet. There is no cloud account and no telemetry. Sloppy ships a bundled Tier 1 local brain — **Gemma 4 E2B QAT Q4_0** running on `llama.cpp` b12676 — with runtime/model artifacts tracked via Git LFS for local-first use. You can also connect your own [OpenCode](https://opencode.ai/) provider; Sloppy is the face and the permission surface, talking to a local service over loopback HTTP.
 
 ## Why you might want it
 
@@ -16,6 +20,17 @@ It is local-first and quiet. There is no cloud account, no telemetry, and no mod
 - **Approvals where you are.** Permission requests become in-chat cards with generation guards, so a late click cannot approve a newer turn.
 - **Stop means stop.** Cancellation reaches the streaming reader itself, not just the initial request.
 - **Small and inspectable.** A WPF / PowerShell frontend with headless tests, a live UI verifier and an 18-step source CodeTour.
+
+## Architecture (compact)
+
+`mermaid
+flowchart LR
+  User[?? You] --> UI[?? Sloppy WPF companion]
+  UI --> Route[?? Route planner]
+  Route -->|Tier 1 local| Llama[?? llama.cpp + Gemma GGUF]
+  Route -->|Tier 2 agentic| OC[?? OpenCode + tools/permissions]
+  UI --> State[? Streaming/thinking/success/error states]
+`
 
 ## How it works
 
@@ -39,6 +54,28 @@ You --> Sloppy UI --> OpenCode service (loopback HTTP)
 
 Everything above is wired in the WPF / PowerShell frontend; the capability and the safety policy live in OpenCode config.
 
+## Fun things you can do
+
+- Watch the pea react to your agent in real time — thinking, working, stalled, asking permission, finishing
+- Teach it to play digital hide-and-seek: it follows your cursor, hides, peeks
+- Turn on System Sense and it leaves thought bubbles when your CPU, RAM, or disk misbehaves
+
+## ?? Stack
+
+| Layer | Technology | Notes |
+|---|---|---|
+| UI | PowerShell 7 + WPF/XAML | Native Windows companion |
+| Tier 1 | llama.cpp + Gemma 4 E2B GGUF | Bundled local/default path |
+| Tier 2 | OpenCode service/SSE | Agentic tools, permissions, audit |
+| Tests | Pester 6 | Headless contracts + shell checks |
+
+## ?? Provisioning
+
+`powershell
+# Prereqs: Windows, PowerShell 7+, OpenCode service configured
+# Large runtime/models are Git LFS-tracked: git lfs pull
+`
+
 ## Quick start
 
 There is no installer yet. The honest current path is:
@@ -51,9 +88,18 @@ Requirements:
 
 - Windows
 - PowerShell 7.6 or later, in STA mode
-- A local OpenCode service with your agent, model and provider configured
+- Git LFS (to fetch bundled runtime/model artifacts in a source checkout)
+- Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
-Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one.
+Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain is text-only in the current request path; multimodal runtime hooks are ready, but image/audio capture and request wiring are not shipped yet.
+
+## ?? Playbook (short)
+
+1. **Scope**: small always-on companion, local-first, honest states.
+2. **Shell**: WPF overlay + tray + clear visual state model.
+3. **Brains**: Tier 1 local default, Tier 2 OpenCode opt-in upgrade.
+4. **Safety**: permissioned agent actions, no credential leakage, no fake live claims.
+5. **Verify**: Pester contracts, tour anchors, live smoke before claiming UI behavior.
 
 ## What it is not
 
@@ -64,7 +110,7 @@ The companion product is still early. Some ideas in [the plans](docs/superpowers
 ## Proof
 
 ```powershell
-# Full Pester aggregate — 522 tests
+# Full Pester aggregate
 pwsh -NoProfile -Command "Import-Module Pester -MinimumVersion 6.0; Invoke-Pester -Path 'tests/Slop.Tests.ps1' -CI -Output Detailed"
 
 # Geometry verifier — 18 scenarios

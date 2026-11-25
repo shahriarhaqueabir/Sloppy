@@ -599,8 +599,8 @@ Run:
 ```powershell
 pwsh -NoProfile -File tests/slop-motion-check.ps1
 pwsh -STA -NoProfile -File tools/verify-motion.ps1
-pwsh -NoProfile -File 'C:\Users\example\.agents\scripts\verify.ps1'
-pwsh -NoProfile -File 'C:\Users\example\.agents\scripts\review.ps1'
+pwsh -NoProfile -File '<agent-home>/scripts/verify.ps1'
+pwsh -NoProfile -File '<agent-home>/scripts/review.ps1'
 ```
 
 Expected:
@@ -629,3 +629,4 @@ git commit -m "test: verify visual signal pairs live"
 **Flow bugs caught during self-review (fixed above):**
 1. `Finish-Stream` and every 40 ms drain tick call `Set-SlopBaseCondition`. If that function cleared the transient, the success/error overlay would be erased in the same tick it was set. Base changes therefore never clear the overlay; the explicit `Clear-SlopSignal` in `Start-Stream` is the only place a new request clears it.
 2. Stall detection mixed `Get-Date` (local) with `[DateTime]::UtcNow`, which gives a timezone-offset delta on the first tick. All timestamps now use `[DateTime]::UtcNow`.
+
