@@ -25,11 +25,11 @@ It is local-first and quiet. There is no cloud account and no telemetry. Sloppy 
 
 `mermaid
 flowchart LR
-  User[?? You] --> UI[?? Sloppy WPF companion]
-  UI --> Route[?? Route planner]
-  Route -->|Tier 1 local| Llama[?? llama.cpp + Gemma GGUF]
-  Route -->|Tier 2 agentic| OC[?? OpenCode + tools/permissions]
-  UI --> State[? Streaming/thinking/success/error states]
+  User[You] --> UI[Sloppy WPF companion]
+  UI --> Route[Route planner]
+  Route -->|Tier 1 local| Llama[llama.cpp + Gemma GGUF]
+  Route -->|Tier 2 agentic| OC[OpenCode + tools/permissions]
+  UI --> State[Streaming/thinking/success/error states]
 `
 
 ## How it works
@@ -60,7 +60,7 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 - Teach it to play digital hide-and-seek: it follows your cursor, hides, peeks
 - Turn on System Sense and it leaves thought bubbles when your CPU, RAM, or disk misbehaves
 
-## ?? Stack
+## 🧰 Stack
 
 | Layer | Technology | Notes |
 |---|---|---|
@@ -69,7 +69,7 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 | Tier 2 | OpenCode service/SSE | Agentic tools, permissions, audit |
 | Tests | Pester 6 | Headless contracts + shell checks |
 
-## ?? Provisioning
+## 🚀 Provisioning
 
 `powershell
 # Prereqs: Windows, PowerShell 7+, OpenCode service configured
@@ -93,7 +93,7 @@ Requirements:
 
 Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain is text-only in the current request path; multimodal runtime hooks are ready, but image/audio capture and request wiring are not shipped yet.
 
-## ?? Playbook (short)
+## 📋 Playbook (short)
 
 1. **Scope**: small always-on companion, local-first, honest states.
 2. **Shell**: WPF overlay + tray + clear visual state model.
