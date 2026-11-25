@@ -24,6 +24,7 @@ build/
 
 # Agent brainstorm artifacts
 .superpowers/
+docs/superpowers/
 
 # Test artifacts
 /testResults.xml
