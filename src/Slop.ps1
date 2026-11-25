@@ -859,6 +859,7 @@ function Finish-Stream {
     $SendBtn.Visibility = 'Visible'
     $StopBtn.Visibility = 'Collapsed'
     $SendBtn.IsEnabled = $true
+    Set-SlopMicUiState -State idle
     $InputBox.IsEnabled = $true
     # Do not pull focus back into a chat the user has already collapsed.
     if ($script:Expanded) { $InputBox.Focus() | Out-Null }
@@ -970,6 +971,7 @@ function Update-SlopVoiceReadinessUi {
     $VoiceLanguageCombo.Text = [string]$cfg.whisperLanguage
     $VoiceMaxSecondsBox.Text = [string]$cfg.voiceMaxSeconds
     $VoiceReadyText.Text = 'Whisper readiness: ' + (Get-SlopVoiceReadinessText -Config $cfg -InstallRoot $script:VoiceInstallRoot)
+    Set-SlopMicUiState -State idle
 }
 
 function Load-SlopSettings {
@@ -1717,8 +1719,127 @@ $AttachBtn.Add_Click({
 
 $script:MicRecording = $false
 $script:MicRecorderPath = $null
+$script:MicCapTimer = $null
+$script:VoiceBusy = $false
+$script:VoiceMaxSeconds = 30
+$script:VoiceQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
+
+function Set-SlopMicUiState {
+    param([ValidateSet('idle','recording','transcribing')][string]$State)
+    if ($State -eq 'recording') {
+        $MicBtn.Content = '■'
+        $MicBtn.ToolTip = 'Recording... click to stop'
+        $MicBtn.IsEnabled = $true
+        $SendBtn.IsEnabled = $false
+    }
+    elseif ($State -eq 'transcribing') {
+        $MicBtn.Content = '⏳'
+        $MicBtn.ToolTip = 'Transcribing locally...'
+        $MicBtn.IsEnabled = $false
+        $SendBtn.IsEnabled = $false
+    }
+    else {
+        $MicBtn.Content = '🎤'
+        $MicBtn.ToolTip = if ($script:SlopConfigResult.Config.voiceEnabled) { 'Voice note to text (click to start/stop)' } else { 'Enable voice input in Settings' }
+        $MicBtn.IsEnabled = [bool]$script:SlopConfigResult.Config.voiceEnabled
+        $SendBtn.IsEnabled = -not [bool]$script:IsStreaming
+    }
+}
+
+function Start-SlopVoiceTranscription {
+    param([Parameter(Mandatory)][string]$WavPath)
+    $cfg = $script:SlopConfigResult.Config
+    $paths = Get-SlopWhisperPaths -InstallRoot $script:VoiceInstallRoot `
+        -CliFile ([string]$cfg.whisperRuntimeFile) -ModelFile ([string]$cfg.whisperModelFile)
+    $ready = Test-SlopWhisperReady -Paths $paths
+    if (-not $ready.Ok) {
+        Add-Bubble -Text "[error: voice input unavailable: $($ready.Errors -join '; ')]" -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    $script:VoiceBusy = $true
+    Set-SlopMicUiState -State transcribing
+    Start-ThreadJob -ScriptBlock {
+        param($AudioModule, $Paths, $Wav, $Language, $Queue)
+        try {
+            . $AudioModule
+            $result = Invoke-SlopWhisperTranscription -Paths $Paths -WavPath $Wav -Language $Language -TimeoutSeconds 90
+            if (-not $result.Ok) { $Queue.Enqueue("__VOICEERR__$($result.Reason)"); return }
+            if ([string]::IsNullOrWhiteSpace($result.Text)) { $Queue.Enqueue('__VOICEERR__I did not catch that.'); return }
+            $Queue.Enqueue("__VOICE__$($result.Text)")
+        }
+        catch { $Queue.Enqueue("__VOICEERR__$($_.Exception.Message)") }
+        finally {
+            if (Test-Path -LiteralPath $Wav) { Remove-Item -LiteralPath $Wav -Force -ErrorAction SilentlyContinue }
+            $Queue.Enqueue('__VOICEDONE__')
+        }
+    } -ArgumentList (Join-Path $PSScriptRoot 'Slop.Audio.ps1'), $paths, $WavPath, ([string]$cfg.whisperLanguage), $script:VoiceQueue
+}
+
+function Stop-SlopMicAndTranscribe {
+    if (-not $script:MicRecording) { return }
+    $script:MicRecording = $false
+    if ($script:MicCapTimer) { $script:MicCapTimer.Stop() }
+    [SlopWinMM]::mciSendString('stop slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+    [SlopWinMM]::mciSendString(('save slopmic "' + $script:MicRecorderPath + '"'), $null, 0, [IntPtr]::Zero) | Out-Null
+    [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+    $wav = $script:MicRecorderPath
+    $script:MicRecorderPath = $null
+    if (-not $wav -or -not (Test-Path -LiteralPath $wav -PathType Leaf)) {
+        Add-Bubble -Text '[error: microphone recording was not saved]' -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    if ((Get-Item -LiteralPath $wav).Length -le 44) {
+        Remove-Item -LiteralPath $wav -Force -ErrorAction SilentlyContinue
+        Add-Bubble -Text '[error: microphone recording was empty]' -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    Start-SlopVoiceTranscription -WavPath $wav
+}
+
+$script:VoiceTimer = [System.Windows.Threading.DispatcherTimer]::new()
+$script:VoiceTimer.Interval = [TimeSpan]::FromMilliseconds(40)
+$script:VoiceTimer.Add_Tick({
+    $q = $script:VoiceQueue
+    if ($null -eq $q) { return }
+    $tok = $null
+    while ($q.TryDequeue([ref]$tok)) {
+        if ($tok.StartsWith('__VOICE__')) {
+            # Start-Stream already adds the user bubble; do not add it twice.
+            Start-Stream -UserText $tok.Substring(9) -Attachments @()
+        }
+        elseif ($tok.StartsWith('__VOICEERR__')) {
+            Add-Bubble -Text "[error: $($tok.Substring(12))]" -IsUser $false
+            Set-SlopMicUiState -State idle
+        }
+        elseif ($tok -eq '__VOICEDONE__') { Set-SlopMicUiState -State idle }
+    }
+})
+$script:VoiceTimer.Start()
+
+$script:MicCapTimer = [System.Windows.Threading.DispatcherTimer]::new()
+$script:MicCapTimer.Add_Tick({
+    if ($script:MicRecording) {
+        Stop-SlopMicAndTranscribe
+        Add-Bubble -Text "Recording stopped at the $($script:VoiceMaxSeconds)s limit." -IsUser $false
+    }
+})
+
 $MicBtn.Add_Click({
     try {
+        if ($script:VoiceBusy) { return }
+        if ($script:IsStreaming) {
+            Add-Bubble -Text 'Wait for the current reply before starting a voice note.' -IsUser $false
+            return
+        }
+        $cfg = $script:SlopConfigResult.Config
+        if (-not $cfg.voiceEnabled) {
+            Add-Bubble -Text 'Enable voice input in Settings.' -IsUser $false
+            return
+        }
+        if ($script:MicRecording) { Stop-SlopMicAndTranscribe; return }
         if (-not ('SlopWinMM' -as [type])) {
             Add-Type -TypeDefinition @"
 using System;
@@ -1729,33 +1850,26 @@ public static class SlopWinMM {
 }
 "@
         }
-        if ($script:MicRecording) {
-            [SlopWinMM]::mciSendString('stop slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
-            [SlopWinMM]::mciSendString(('save slopmic "' + $script:MicRecorderPath + '"'), $null, 0, [IntPtr]::Zero) | Out-Null
-            [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
-            $script:MicRecording = $false
-            $MicBtn.Content = '🎤'
-            $MicBtn.ToolTip = 'Record a short voice note (click to start/stop)'
-            if ($script:MicRecorderPath -and (Test-Path -LiteralPath $script:MicRecorderPath)) {
-                $att = New-SlopAttachmentFromFile -Path $script:MicRecorderPath
-                Add-SlopPendingAttachment -Attachment $att
-            }
-            return
-        }
         $tmp = Join-Path ([IO.Path]::GetTempPath()) ("slop-mic-" + [guid]::NewGuid().ToString('N') + '.wav')
         $script:MicRecorderPath = $tmp
         [SlopWinMM]::mciSendString('open new type waveaudio alias slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
         $result = [SlopWinMM]::mciSendString('record slopmic', $null, 0, [IntPtr]::Zero)
         if ($result -ne 0) { throw "winmm record failed (code $result)" }
         $script:MicRecording = $true
-        $MicBtn.Content = '■'
-        $MicBtn.ToolTip = 'Recording... click to stop'
+        $script:VoiceMaxSeconds = [int]$cfg.voiceMaxSeconds
+        $script:MicCapTimer.Interval = [TimeSpan]::FromSeconds($script:VoiceMaxSeconds)
+        $script:MicCapTimer.Start()
+        Set-SlopMicUiState -State recording
     }
     catch {
         $script:MicRecording = $false
+        if ($script:MicCapTimer) { $script:MicCapTimer.Stop() }
         try { [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null } catch {}
-        $MicBtn.Content = '🎤'
-        $MicBtn.ToolTip = 'Record a short voice note (click to start/stop)'
+        if ($script:MicRecorderPath -and (Test-Path -LiteralPath $script:MicRecorderPath)) {
+            Remove-Item -LiteralPath $script:MicRecorderPath -Force -ErrorAction SilentlyContinue
+        }
+        $script:MicRecorderPath = $null
+        Set-SlopMicUiState -State idle
         Add-Bubble -Text "[error: mic recording unavailable: $($_.Exception.Message)]" -IsUser $false
     }
 })
@@ -1839,6 +1953,7 @@ elseif (-not $script:SlopConfigResult.Ok) {
         $script:SlopConfigResult = @{ Ok = $true; Exists = $true; Config = $saved; Reason = $null }
     }
 }
+Set-SlopMicUiState -State idle
 $script:LocalModelProcess = $null
 $script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $script:SlopConfigResult.Config
 $script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
