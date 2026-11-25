@@ -18,7 +18,7 @@ The installer/first-run flow must check prerequisites, explain what is needed, i
 | `runtime/models/gemma-4-E2B_q4_0-it.gguf` | ~3.19 GB | Tier 1 local text | **Download on demand** (default Tier 1 component). |
 | `runtime/models/gemma-4-E2B-it-mmproj.gguf` | ~0.94 GB | Future multimodal image/audio | **Optional download, feature-gated**; do not bundle until multimodal is live-verified. |
 | `runtime/llama-b12676-bin-win-cuda-13.5-x64/` | ~0.27 GB | Tier 1 local runtime | **Download selected backend only**; trim unused CLI tools. |
-| `assets/Sloppy.mp4` | ~29 MB | No | Release/web asset, **not installer payload**. |
+| `assets/Sloppy.gif` | small | Optional | Showcase/demo asset; keep out of installer payload unless intentionally needed. |
 | `src/`, required `.opencode` fallback, runtime assets | <1 MB | Yes | **Bundle**. |
 | `tests/`, `docs/`, `.tours/`, dev tools | small | No | **Exclude** from end-user installer. |
 
