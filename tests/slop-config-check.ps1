@@ -260,4 +260,99 @@ Describe 'Slop.Config' {
         $badBool.voiceEnabled = 'yes'
         ((Test-SlopConfig -Config $badBool).Errors -join '; ') | Should -Match 'voiceEnabled'
     }
+
+    It 'Set-SlopConfigIdentity changes identity fields without mutating the input or writing a file' {
+        $cfg = New-SlopDefaultConfig
+        $r = Set-SlopConfigIdentity -Config $cfg -Name 'Mochi' -Color 'plum' -Personality 'playful'
+        $r.Ok | Should -BeTrue
+        @($r.Errors).Count | Should -Be 0
+        $r.Config.name | Should -Be 'Mochi'
+        $r.Config.color | Should -Be 'plum'
+        $r.Config.personality | Should -Be 'playful'
+        $cfg.name | Should -Be 'Sloppy'
+        Test-Path -LiteralPath $script:ConfigPath | Should -BeFalse
+    }
+
+    It 'Set-SlopConfigIdentity rejects an invalid swatch' {
+        $r = Set-SlopConfigIdentity -Config (New-SlopDefaultConfig) -Name 'Mochi' -Color 'neon' -Personality 'calm'
+        $r.Ok | Should -BeFalse
+        ($r.Errors -join '; ') | Should -Match 'color'
+    }
+
+    It 'Set-SlopConfigBrain makes a valid custom route and clears stale discovered agent metadata' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.agent = @{ model = 'stale-discovered-model' }
+        $r = Set-SlopConfigBrain -Config $cfg -Brain 'custom' -Provider 'ignored' `
+            -ProviderLocality 'remote' -ProviderTier 'paid' -EndpointUrl 'http://127.0.0.1:18080/' `
+            -Model 'local-model' -AgentId 'ignored' -CapabilityProfile 'power'
+        $r.Ok | Should -BeTrue
+        @($r.Errors).Count | Should -Be 0
+        $r.Config.brain | Should -Be 'custom'
+        $r.Config.endpointUrl | Should -Be 'http://127.0.0.1:18080'
+        $r.Config.model | Should -Be 'local-model'
+        $r.Config.modelName | Should -Be 'local-model'
+        $r.Config.provider | Should -Be ''
+        $r.Config.providerLocality | Should -Be ''
+        @($r.Config.agent.Keys).Count | Should -Be 0
+        (Test-SlopConfig -Config $r.Config).Ok | Should -BeTrue
+    }
+
+    It 'Set-SlopConfigBrain rejects a non-loopback custom endpoint' {
+        $r = Set-SlopConfigBrain -Config (New-SlopDefaultConfig) -Brain 'custom' -Provider '' `
+            -ProviderLocality '' -ProviderTier 'free' -EndpointUrl 'https://example.invalid/v1' `
+            -Model 'local-model' -AgentId '' -CapabilityProfile 'companion'
+        $r.Ok | Should -BeFalse
+        ($r.Errors -join '; ') | Should -Match 'endpointUrl'
+    }
+
+    It 'Set-SlopConfigBrain requires a model for OpenCode and defaults the agent id' {
+        $missing = Set-SlopConfigBrain -Config (New-SlopDefaultConfig) -Brain 'opencode' -Provider 'Probe' `
+            -ProviderLocality 'local' -ProviderTier 'free' -EndpointUrl '' -Model '' `
+            -AgentId '' -CapabilityProfile 'companion'
+        $missing.Ok | Should -BeFalse
+        ($missing.Errors -join '; ') | Should -Match 'opencode model is required'
+
+        $valid = Set-SlopConfigBrain -Config (New-SlopDefaultConfig) -Brain 'opencode' -Provider 'Probe' `
+            -ProviderLocality 'local' -ProviderTier 'free' -EndpointUrl '' -Model 'probe-model' `
+            -AgentId '' -CapabilityProfile 'companion'
+        $valid.Ok | Should -BeTrue
+        $valid.Config.agentId | Should -Be 'sloppy'
+        $valid.Config.model | Should -Be 'probe-model'
+        @($valid.Config.agent.Keys).Count | Should -Be 0
+    }
+
+    It 'Set-SlopConfigBrain clears route fields for builtin and rejects unknown brains' {
+        $configured = New-SlopDefaultConfig
+        $configured.provider = 'Probe'
+        $configured.providerLocality = 'remote'
+        $configured.providerTier = 'paid'
+        $configured.endpointUrl = 'http://127.0.0.1:1234'
+        $configured.model = 'probe-model'
+        $configured.modelName = 'probe-model'
+        $r = Set-SlopConfigBrain -Config $configured -Brain 'builtin' -Provider '' `
+            -ProviderLocality '' -ProviderTier 'free' -EndpointUrl '' -Model '' `
+            -AgentId '' -CapabilityProfile 'companion'
+        $r.Ok | Should -BeTrue
+        $r.Config.provider | Should -Be ''
+        $r.Config.providerLocality | Should -Be ''
+        $r.Config.providerTier | Should -Be 'free'
+        $r.Config.endpointUrl | Should -Be ''
+        $r.Config.model | Should -Be ''
+        $r.Config.modelName | Should -Be ''
+
+        $bad = Set-SlopConfigBrain -Config (New-SlopDefaultConfig) -Brain 'telepathy' -Provider '' `
+            -ProviderLocality '' -ProviderTier 'free' -EndpointUrl '' -Model '' `
+            -AgentId '' -CapabilityProfile 'companion'
+        $bad.Ok | Should -BeFalse
+        ($bad.Errors -join '; ') | Should -Match 'brain'
+    }
+
+    It 'backs up existing persona text before overwriting it' {
+        Write-SlopPersona -Text 'first persona' -PersonaPath $script:PersonaPath
+        Write-SlopPersona -Text 'second persona' -PersonaPath $script:PersonaPath
+        Get-Content -LiteralPath "$script:PersonaPath.bak" -Raw | Should -Be 'first persona'
+        Get-Content -LiteralPath $script:PersonaPath -Raw | Should -Be 'second persona'
+        $bytes = [IO.File]::ReadAllBytes($script:PersonaPath)
+        $bytes[0] | Should -Not -Be 0xEF
+    }
 }
