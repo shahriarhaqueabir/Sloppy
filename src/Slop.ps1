@@ -1029,7 +1029,12 @@ function Update-SlopRouteBadgeFromConfig {
         $effective = if ($kind -eq 'local-bundled') { $bundled } else { 'unknown' }
     }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
-    Set-SlopRouteBadge -Kind $kind -Provider $provider -Model $effective
+    $catalog = Get-SlopRouteCatalog
+    $badgePlan = @{
+        Badge=(Get-SlopRouteBadge -Kind $kind -Provider $provider -Model $effective)
+        RequiresDisclosure=[bool]$catalog[$kind].TermsRequired
+    }
+    Set-SlopRouteBadge -StreamPlan $badgePlan
 }
 
 function Initialize-SlopDestinationPanels {
