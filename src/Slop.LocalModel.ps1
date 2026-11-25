@@ -11,7 +11,7 @@ function Resolve-SlopLocalContextSize {
     return 8192
 }
 
-function Get-SlopBundledModelName { return 'Gemma 4 E2B QAT Q4_0' }
+function Get-SlopBundledModelName { return 'Qwen3.5-2B Q4_K_M' }
 
 function Resolve-SlopRuntimeFilePath {
     param(
@@ -27,14 +27,21 @@ function Resolve-SlopRuntimeFilePath {
 function Get-SlopRuntimePaths {
     param(
         [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'),
-        [AllowEmptyString()][string]$ModelFile = 'models\gemma-4-E2B_q4_0-it.gguf',
-        [AllowEmptyString()][string]$MmprojFile = 'models\gemma-4-E2B-it-mmproj.gguf'
+        [AllowEmptyString()][string]$ModelFile = 'models\Qwen3.5-2B-Q4_K_M.gguf',
+        [AllowEmptyString()][string]$MmprojFile = ''
     )
+    $resolvedMmproj = ''
+    if (-not [string]::IsNullOrWhiteSpace($MmprojFile)) {
+        # File is non-empty here, so Resolve-SlopRuntimeFilePath never falls back
+        # to DefaultRelativePath; passing the same value keeps the mandatory
+        # parameter satisfied without allowing an empty mandatory string.
+        $resolvedMmproj = Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $MmprojFile -DefaultRelativePath $MmprojFile
+    }
     return @{
         InstallRoot = $InstallRoot
         ServerExe   = (Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe')
-        ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'models\gemma-4-E2B_q4_0-it.gguf')
-        MmprojFile  = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $MmprojFile -DefaultRelativePath 'models\gemma-4-E2B-it-mmproj.gguf')
+        ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'models\Qwen3.5-2B-Q4_K_M.gguf')
+        MmprojFile  = $resolvedMmproj
         Port        = $script:SlopModelPort
         BaseUrl     = "http://127.0.0.1:$script:SlopModelPort"
     }
@@ -45,7 +52,10 @@ function Test-SlopLocalModelPaths {
     $errors = [Collections.Generic.List[string]]::new()
     if (-not (Test-Path -LiteralPath $Paths.ServerExe)) { $errors.Add('the built-in brain is missing llama-server.exe') }
     if (-not (Test-Path -LiteralPath $Paths.ModelFile)) { $errors.Add('the built-in brain model file is missing') }
-    if (-not (Test-Path -LiteralPath $Paths.MmprojFile)) { $errors.Add('the built-in brain mmproj file is missing') }
+    if (-not [string]::IsNullOrWhiteSpace([string]$Paths.MmprojFile) -and
+        -not (Test-Path -LiteralPath $Paths.MmprojFile)) {
+        $errors.Add('the built-in brain mmproj file is missing')
+    }
     if ($Paths.Port -lt 1024 -or $Paths.Port -gt 65535) { $errors.Add('the local model port is invalid') }
     return @{ Ok = ($errors.Count -eq 0); Reason = ($errors -join '; ') }
 }
@@ -60,17 +70,29 @@ function New-SlopLlamaArguments {
     if ($Threads -le 0) { $Threads = [Environment]::ProcessorCount - 2 }
     $Threads = [Math]::Max(2, [Math]::Min(8, $Threads))
     $ContextSize = Resolve-SlopLocalContextSize -ContextSize $ContextSize
-    return @(
-        '--model', $Paths.ModelFile
-        '--mmproj', $Paths.MmprojFile
-        '--host', '127.0.0.1'
-        '--port', [string]$Paths.Port
-        '--ctx-size', [string]$ContextSize
-        '--cache-ram', '0'
-        '--threads', [string]$Threads
-        '--n-predict', [string]$MaxTokens
-        '--alias', 'sloppy'
-    )
+    $llamaArgs = [Collections.Generic.List[string]]::new()
+    $llamaArgs.Add('--model')
+    $llamaArgs.Add([string]$Paths.ModelFile)
+    if (-not [string]::IsNullOrWhiteSpace([string]$Paths.MmprojFile)) {
+        $llamaArgs.Add('--mmproj')
+        $llamaArgs.Add([string]$Paths.MmprojFile)
+    }
+    $llamaArgs.Add('--jinja')
+    $llamaArgs.Add('--host')
+    $llamaArgs.Add('127.0.0.1')
+    $llamaArgs.Add('--port')
+    $llamaArgs.Add([string]$Paths.Port)
+    $llamaArgs.Add('--ctx-size')
+    $llamaArgs.Add([string]$ContextSize)
+    $llamaArgs.Add('--cache-ram')
+    $llamaArgs.Add('0')
+    $llamaArgs.Add('--threads')
+    $llamaArgs.Add([string]$Threads)
+    $llamaArgs.Add('--n-predict')
+    $llamaArgs.Add([string]$MaxTokens)
+    $llamaArgs.Add('--alias')
+    $llamaArgs.Add('sloppy')
+    return $llamaArgs.ToArray()
 }
 
 function Test-SlopLocalModelHealth {

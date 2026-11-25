@@ -61,12 +61,13 @@ function New-SlopDefaultConfig {
         modelName         = ''
         autostart         = $true
 
-        # Tier 1 bundled local brain (Gemma 4 E2B QAT Q4_0). localVisionReady and
+        # Tier 1 bundled local brain (Qwen3.5-2B Q4_K_M). localVisionReady and
         # localAudioReady remain readiness hooks; Tier 1 voice uses the explicit
-        # Slop.Audio.ps1 paths below, not a capability flag.
-        localModelName    = 'Gemma 4 E2B QAT Q4_0'
-        localModelFile    = 'models\gemma-4-E2B_q4_0-it.gguf'
-        localMmprojFile   = 'models\gemma-4-E2B-it-mmproj.gguf'
+        # Slop.Audio.ps1 paths below, not a capability flag. localMmprojFile is
+        # empty on the default text-only path and is only checked when supplied.
+        localModelName    = 'Qwen3.5-2B Q4_K_M'
+        localModelFile    = 'models\Qwen3.5-2B-Q4_K_M.gguf'
+        localMmprojFile   = ''
         localContextSize  = 8192
         localVisionReady  = $true
         localAudioReady   = $true
