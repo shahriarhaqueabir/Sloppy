@@ -23,4 +23,29 @@ Describe 'Slop.Surfaces' {
         $scopes = @('conversation','session','local-data') | ForEach-Object { (Get-SlopDeletionScope -Action $_).Scope }
         ($scopes | Select-Object -Unique).Count | Should -Be 3
     }
+    It 'exposes status, editable, and action IDs for all four destinations' {
+        $expected = @{
+            Settings  = @{ Status='SettingsStatusText';  Editable=@('SettingsInstructionsBox','SettingsModelBox','SettingsBaseUrlBox','SettingsAgentIdBox','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox'); Actions=@('SettingsSaveButton','AutostartButton','VoiceRepairButton','SettingsBack') }
+            Customize = @{ Status='CustomizeStatusText'; Editable=@('CustomizeNameBox','CustomizeColourCombo','CustomizePersonalityCombo','CustomizePersonaBox'); Actions=@('CustomizeSaveButton','CustomizeBack') }
+            Brain     = @{ Status='BrainStatusText';     Editable=@('BrainTypeCombo','BrainProviderBox','BrainLocalityCombo','BrainTierCombo','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo'); Actions=@('BrainSaveButton','BrainBack') }
+            Privacy   = @{ Status='PrivacyStatusText';   Editable=@(); Actions=@('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton','PrivacyBack') }
+        }
+        foreach ($name in $expected.Keys) {
+            $contract = Get-SlopDestinationContract -Name $name
+            $contract.Status | Should -Be $expected[$name].Status
+            @($contract.Editable) | Should -Be $expected[$name].Editable
+            @($contract.Actions) | Should -Be $expected[$name].Actions
+        }
+    }
+
+    It 'keeps deletion actions out of Settings and inside Privacy' {
+        $settings = Get-SlopDestinationContract -Name 'Settings'
+        $privacy = Get-SlopDestinationContract -Name 'Privacy'
+        foreach ($id in @('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton')) {
+            $settings.Actions | Should -Not -Contain $id
+            $privacy.Actions | Should -Contain $id
+        }
+        (Get-SlopDestinationMap).Settings -join ',' | Should -Not -Match 'delete'
+        (Get-SlopDestinationMap).Privacy -join ',' | Should -Match 'Deletion actions'
+    }
 }
