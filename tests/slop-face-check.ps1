@@ -1,6 +1,7 @@
 # tests/slop-face-check.ps1
 $ErrorActionPreference = 'Stop'
 Import-Module Pester -MinimumVersion 6.0
+try { Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase -ErrorAction Stop } catch {}
 . (Join-Path $PSScriptRoot '..\src\Slop.Face.ps1')
 
 $script:SlopChecks = [System.Collections.Generic.List[object]]::new()

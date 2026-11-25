@@ -39,8 +39,8 @@ Describe 'Slop.Route' {
     It 'badges locality, provider and effective model - not the tier' {
         Get-SlopRouteBadge -Kind 'opencode-local' -Provider 'Ollama' -Model 'qwen3:8b' |
             Should -Be 'Local · Ollama · qwen3:8b'
-        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Beam Free' |
-            Should -Be 'Remote · OpenCode Go · Beam Free'
+        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Gemma 4 E2B QAT Q4_0' |
+            Should -Be 'Remote · OpenCode Go · Gemma 4 E2B QAT Q4_0'
     }
 
     It 'rejects an unknown route kind' {
@@ -68,5 +68,51 @@ Describe 'Slop.Route' {
         $plan.AdapterPath | Should -Match 'Slop\.Adapter\.OpenAi\.ps1$'
         $plan.AdapterArgs.BaseUrl | Should -Be 'http://127.0.0.1:11434'
         $plan.RequiresDisclosure | Should -BeFalse
+    }
+
+    It 'plans a local-bundled route with Gemma contract when runtime files exist' {
+        $root = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-rt-' + [guid]::NewGuid().ToString('N'))
+        $savedLocal = $env:LOCALAPPDATA
+        try {
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            $env:LOCALAPPDATA = $root
+            $paths = Get-SlopRuntimePaths
+            New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
+            New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+            New-Item -ItemType File -Path $paths.MmprojFile -Force | Out-Null
+
+            $plan = Get-SlopRoutePlan -Config @{
+                brain='builtin'; localContextSize=16384; localModelName='Gemma 4 E2B QAT Q4_0'
+            } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath 'C:/fake'
+
+            $plan.Ok | Should -BeTrue
+            $plan.Kind | Should -Be 'builtin'
+            $plan.RouteKind | Should -Be 'local-bundled'
+            $plan.ReadyToSend | Should -BeFalse
+            $plan.NeedsLocalModelStart | Should -BeTrue
+            $plan.Badge | Should -Be 'Local · bundled · Gemma 4 E2B QAT Q4_0'
+            $plan.AdapterPath | Should -Match 'Slop\.Adapter\.OpenAi\.ps1$'
+            $plan.AdapterArgs.BaseUrl | Should -Be 'http://127.0.0.1:18080'
+            $plan.LocalModelContextSize | Should -Be 16384
+            $plan.LocalModelPaths.MmprojFile | Should -Match 'gemma-4-E2B-it-mmproj\.gguf$'
+        } finally {
+            $env:LOCALAPPDATA = $savedLocal
+            if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+        }
+    }
+
+    It 'fails closed for local-bundled route when runtime files are missing' {
+        $root = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-miss-' + [guid]::NewGuid().ToString('N'))
+        $savedLocal = $env:LOCALAPPDATA
+        try {
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            $env:LOCALAPPDATA = $root
+            $plan = Get-SlopRoutePlan -Config @{ brain='builtin' } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath 'C:/fake'
+            $plan.Ok | Should -BeFalse
+            $plan.Reason | Should -Match 'missing|llama-server|model'
+        } finally {
+            $env:LOCALAPPDATA = $savedLocal
+            if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+        }
     }
 }

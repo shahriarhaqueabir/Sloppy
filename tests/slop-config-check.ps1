@@ -36,6 +36,32 @@ Describe 'Slop.Config' {
         @($result.Errors).Count | Should -Be 0
     }
 
+    It 'defaults local bundled context and readiness for Gemma E2B' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.localModelName | Should -Be 'Gemma 4 E2B QAT Q4_0'
+        $cfg.localModelFile | Should -Match 'gemma-4-E2B_q4_0-it\.gguf$'
+        $cfg.localMmprojFile | Should -Match 'gemma-4-E2B-it-mmproj\.gguf$'
+        $cfg.localContextSize | Should -Be 8192
+        $cfg.localVisionReady | Should -BeTrue
+        $cfg.localAudioReady | Should -BeTrue
+    }
+
+    It 'accepts allowed localContextSize values and normalizes invalid ones' {
+        foreach ($size in 8192,16384,32768) {
+            $cfg = New-SlopDefaultConfig
+            $cfg.localContextSize = $size
+            (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+        }
+        $bad = New-SlopDefaultConfig
+        $bad.localContextSize = 12345
+        (Test-SlopConfig -Config $bad).Ok | Should -BeFalse
+
+        [IO.File]::WriteAllText($script:ConfigPath, '{"name":"Pea","localContextSize":12345}', [Text.UTF8Encoding]::new($false))
+        $r = Read-SlopConfig -ConfigPath $script:ConfigPath
+        $r.Ok | Should -BeTrue
+        $r.Config.localContextSize | Should -Be 8192
+    }
+
     It 'returns six identity colors, none of which is a semantic signal hex' {
         $colors = Get-SlopIdentityColors
         @($colors.Keys).Count | Should -Be 6
@@ -83,6 +109,28 @@ Describe 'Slop.Config' {
         (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
     }
 
+    It 'rejects instructions longer than 1200 characters' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.instructions = 'x' * 1201
+        $result = Test-SlopConfig -Config $cfg
+        $result.Ok | Should -BeFalse
+        $result.Errors | Should -Contain 'instructions must be at most 1200 characters'
+    }
+
+    It 'accepts a loopback openCodeBaseUrl and rejects non-loopback or credentialed values' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.openCodeBaseUrl = 'http://127.0.0.1:28894'
+        (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+
+        foreach ($bad in @('https://example.com', 'http://localhost:28894?x=1', 'http://user:pass@127.0.0.1:28894', 'http://127.0.0.1:28894#frag')) {
+            $badCfg = New-SlopDefaultConfig
+            $badCfg.openCodeBaseUrl = $bad
+            $result = Test-SlopConfig -Config $badCfg
+            $result.Ok | Should -BeFalse
+            $result.Errors | Should -Contain 'openCodeBaseUrl must be a loopback http URL without embedded credentials or query data'
+        }
+    }
+
     It 'rejects a non-local endpointUrl only for the custom brain' {
         $cfg = New-SlopDefaultConfig
         $cfg.brain = 'custom'
@@ -112,11 +160,14 @@ Describe 'Slop.Config' {
         $r.Config.PSObject.Properties.Name | Should -Not -Contain 'futureKey'
     }
 
-    It 'migrates version 0 to version 1 in memory' {
-        [IO.File]::WriteAllText($script:ConfigPath, '{"version":0,"name":"Pea"}', [Text.UTF8Encoding]::new($false))
-        $r = Read-SlopConfig -ConfigPath $script:ConfigPath
-        $r.Ok | Should -BeTrue
-        $r.Config.version | Should -Be 1
+    It 'migrates version 0 and version 1 configs to version 2 in memory' {
+        foreach ($version in 0, 1) {
+            [IO.File]::WriteAllText($script:ConfigPath, ('{{"version":{0},"name":"Pea"}}' -f $version), [Text.UTF8Encoding]::new($false))
+            $r = Read-SlopConfig -ConfigPath $script:ConfigPath
+            $r.Ok | Should -BeTrue
+            $r.Config.version | Should -Be 2
+            $r.Config.name | Should -Be 'Pea'
+        }
     }
 
     It 'fails closed on malformed JSON with a plain-language reason' {
@@ -160,5 +211,45 @@ Describe 'Slop.Config' {
         Read-SlopPersona -PersonaPath $script:PersonaPath | Should -Be $text
         $bytes = [IO.File]::ReadAllBytes($script:PersonaPath)
         $bytes[0] | Should -Not -Be 0xEF
+    }
+
+    It 'defaults voice off with pinned Whisper relative paths' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.version | Should -Be 2
+        $cfg.voiceEnabled | Should -BeFalse
+        $cfg.whisperRuntimeFile | Should -Be 'runtime\whisper\whisper-cli.exe'
+        $cfg.whisperModelFile | Should -Be 'runtime\whisper\models\ggml-small.bin'
+        $cfg.whisperLanguage | Should -Be 'auto'
+        $cfg.voiceMaxSeconds | Should -Be 30
+        (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+    }
+
+    It 'normalizes malformed voice values to safe defaults and preserves valid ones' {
+        [IO.File]::WriteAllText($script:ConfigPath, '{"version":2,"voiceEnabled":true,"whisperLanguage":"EN","whisperModelFile":"","voiceMaxSeconds":2}', [Text.UTF8Encoding]::new($false))
+        $r = Read-SlopConfig -ConfigPath $script:ConfigPath
+        $r.Ok | Should -BeTrue
+        $r.Config.voiceEnabled | Should -BeTrue
+        $r.Config.whisperLanguage | Should -Be 'auto'
+        $r.Config.whisperModelFile | Should -Be 'runtime\whisper\models\ggml-small.bin'
+        $r.Config.voiceMaxSeconds | Should -Be 30
+
+        [IO.File]::WriteAllText($script:ConfigPath, '{"version":2,"voiceEnabled":true,"voiceMaxSeconds":45}', [Text.UTF8Encoding]::new($false))
+        $r2 = Read-SlopConfig -ConfigPath $script:ConfigPath
+        $r2.Ok | Should -BeTrue
+        $r2.Config.voiceMaxSeconds | Should -Be 45
+    }
+
+    It 'rejects out-of-range voice settings in Test-SlopConfig' {
+        $badLanguage = New-SlopDefaultConfig
+        $badLanguage.whisperLanguage = 'EN'
+        ((Test-SlopConfig -Config $badLanguage).Errors -join '; ') | Should -Match 'whisperLanguage'
+
+        $badSeconds = New-SlopDefaultConfig
+        $badSeconds.voiceMaxSeconds = 9
+        ((Test-SlopConfig -Config $badSeconds).Errors -join '; ') | Should -Match 'voiceMaxSeconds'
+
+        $badBool = New-SlopDefaultConfig
+        $badBool.voiceEnabled = 'yes'
+        ((Test-SlopConfig -Config $badBool).Errors -join '; ') | Should -Match 'voiceEnabled'
     }
 }

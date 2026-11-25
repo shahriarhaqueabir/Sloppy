@@ -13,6 +13,8 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 # Sloppy companion modules. Order matters: Provider/Onboarding/Route depend on
 # Config; Route also needs OpenCodeProfile, LocalModel and the OpenCode bridge.
 . (Join-Path $PSScriptRoot 'Slop.Config.ps1')
+. (Join-Path $PSScriptRoot 'Slop.Audio.ps1')
+. (Join-Path (Split-Path $PSScriptRoot -Parent) 'tools/slop-preflight.ps1')
 . (Join-Path $PSScriptRoot 'Slop.LocalModel.ps1')
 . (Join-Path $PSScriptRoot 'Slop.OpenCodeProfile.ps1')
 . (Join-Path $PSScriptRoot 'Slop.Provider.ps1')
@@ -22,6 +24,8 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'Slop.Surfaces.ps1')
 # Disclosure acceptance is per app lifetime; never persisted.
 $script:SlopDisclosureAccepted = $false
+$script:PendingAttachments = [System.Collections.Generic.List[hashtable]]::new()
+$script:VoiceInstallRoot = Get-SlopVoiceInstallRoot
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -95,8 +99,8 @@ $xaml = @'
       <TextBlock x:Name="RouteBadge" Grid.Row="0" HorizontalAlignment="Left"
                  VerticalAlignment="Center" Margin="162,0,0,0" MaxWidth="206"
                  TextTrimming="CharacterEllipsis" FontSize="9" Foreground="#B8B8C0"
-                 Text="Local · bundled · Qwen3 4B Q4_K_M"
-                 AutomationProperties.Name="Local · bundled · Qwen3 4B Q4_K_M" IsHitTestVisible="False"/>
+                 Text="Local · bundled · Gemma 4 E2B QAT Q4_0"
+                 AutomationProperties.Name="Local · bundled · Gemma 4 E2B QAT Q4_0" IsHitTestVisible="False"/>
       <!-- Three faint embedded dots near the wide head shelf; revealed on hover -->
       <Border x:Name="ControlDots" Grid.Row="0" HorizontalAlignment="Right"
               VerticalAlignment="Center" Margin="0,0,14,0" Padding="3"
@@ -131,25 +135,62 @@ $xaml = @'
             </ScrollViewer>
 
             <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
-              <TextBlock Text="Startup behaviour" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <Button x:Name="AutostartButton" Content="Autostart: Off" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
-              <TextBlock Text="Data location: %LOCALAPPDATA%\Sloppy" Foreground="#8A8A96" FontSize="10"
-                         TextWrapping="Wrap" Margin="6,0,6,10"/>
-              <TextBlock Text="Reset / delete conversation" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-              <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
-              <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
-              <TextBlock x:Name="AboutText" Text="About and version — Sloppy companion v1" Foreground="#8A8A96"
-                         FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
-              <TextBlock Text="Advanced / developer" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
-              <StackPanel x:Name="AdvancedStack" Margin="6,0,6,8"/>
-              <Button x:Name="SettingsBack" Content="Back to chat" HorizontalAlignment="Left"
-                      Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+                <StackPanel Margin="0,0,4,0">
+                  <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
+
+                  <TextBlock Text="Companion" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,0,6,4"/>
+                  <TextBlock Text="Custom instructions" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsInstructionsBox" Height="56" FontSize="11" AcceptsReturn="True"
+                           TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="6,0,6,8" Padding="6,4"/>
+
+                  <TextBlock Text="Brain / runtime" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <TextBlock Text="Model (synced to model/modelName)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsModelBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+                  <TextBlock Text="OpenCode base URL (loopback only)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsBaseUrlBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+                  <TextBlock Text="OpenCode agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="SettingsAgentIdBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
+
+                  <TextBlock Text="Voice input" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <CheckBox x:Name="VoiceEnabledCheck" Content="Voice enabled (local transcription, off by default)"
+                            Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,6"/>
+                  <TextBlock Text="Language" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <ComboBox x:Name="VoiceLanguageCombo" Height="26" FontSize="11" Margin="6,0,6,6" Width="140"
+                            HorizontalAlignment="Left"/>
+                  <TextBlock Text="Max seconds" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBox x:Name="VoiceMaxSecondsBox" Height="26" FontSize="11" Width="80" Margin="6,0,6,6"
+                           HorizontalAlignment="Left" Padding="6,3" VerticalContentAlignment="Center"/>
+                  <Button x:Name="VoiceRepairButton" Content="Repair voice" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
+                          Background="#22FFFFFF" Foreground="#EAEAEA" Padding="10,4"/>
+                  <TextBlock x:Name="VoiceReadyText" Text="Whisper readiness: unknown" Foreground="#8A8A96"
+                             FontSize="10" TextWrapping="Wrap" Margin="6,0,6,10"/>
+
+                  <Button x:Name="SettingsSaveButton" Content="Save settings" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,10"
+                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+
+                  <TextBlock Text="Startup behaviour" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <Button x:Name="AutostartButton" Content="Autostart: Off" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
+                  <TextBlock Text="Data location: %LOCALAPPDATA%\Sloppy" Foreground="#8A8A96" FontSize="10"
+                             TextWrapping="Wrap" Margin="6,0,6,10"/>
+                  <TextBlock Text="Reset / delete conversation" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <Button x:Name="DeleteConversationButton" Content="Clear conversation" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteSessionButton" Content="Delete OpenCode session" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"/>
+                  <Button x:Name="DeleteLocalDataButton" Content="Clear Sloppy local data" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,8"/>
+                  <TextBlock x:Name="AboutText" Text="About and version - Sloppy companion v1" Foreground="#8A8A96"
+                             FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
+                  <TextBlock Text="Advanced / developer" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
+                  <StackPanel x:Name="AdvancedStack" Margin="6,0,6,8"/>
+                  <Button x:Name="SettingsBack" Content="Back to chat" HorizontalAlignment="Left"
+                          Style="{StaticResource SlopButton}" FontSize="10" Margin="6,2,6,6"/>
+                </StackPanel>
+              </ScrollViewer>
             </StackPanel>
 
             <StackPanel x:Name="CustomizePanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
@@ -216,12 +257,12 @@ $xaml = @'
                        Foreground="#77EAEAEA" VerticalAlignment="Center" Margin="7,0,0,0"
                        IsHitTestVisible="False"/>
           </Grid>
-          <Button x:Name="MicBtn" Grid.Column="1" Content="◉" Style="{StaticResource SlopButton}"
+          <Button x:Name="MicBtn" Grid.Column="1" Content="🎤" Style="{StaticResource SlopButton}"
                   Width="28" Height="34" Margin="6,0,0,0" Background="Transparent" Foreground="#AAA"
-                  Cursor="Hand" FontSize="13" ToolTip="Voice input (not wired in this slice)"/>
+                  Cursor="Hand" FontSize="13" ToolTip="Record a short voice note (click to start/stop)"/>
           <Button x:Name="AttachBtn" Grid.Column="2" Content="+" Style="{StaticResource SlopButton}"
                   Width="28" Height="34" Margin="4,0,0,0" Background="Transparent" Foreground="#AAA"
-                  Cursor="Hand" FontSize="13" ToolTip="Attach (not wired in this slice)"/>
+                  Cursor="Hand" FontSize="13" ToolTip="Attach audio or image file"/>
           <Button x:Name="StopBtn" Grid.Column="3" Content="■" Style="{StaticResource SlopButton}"
                   Width="40" Height="34" Margin="6,0,0,0" Background="#7F1D1D" Foreground="White"
                   Cursor="Hand" FontSize="11" Visibility="Collapsed"/>
@@ -297,6 +338,17 @@ $AutostartButton = $window.FindName('AutostartButton')
 $DeleteConversationButton = $window.FindName('DeleteConversationButton')
 $DeleteSessionButton = $window.FindName('DeleteSessionButton')
 $DeleteLocalDataButton = $window.FindName('DeleteLocalDataButton')
+$SettingsInstructionsBox = $window.FindName('SettingsInstructionsBox')
+$SettingsModelBox = $window.FindName('SettingsModelBox')
+$SettingsBaseUrlBox = $window.FindName('SettingsBaseUrlBox')
+$SettingsAgentIdBox = $window.FindName('SettingsAgentIdBox')
+$VoiceEnabledCheck = $window.FindName('VoiceEnabledCheck')
+$VoiceLanguageCombo = $window.FindName('VoiceLanguageCombo')
+$VoiceMaxSecondsBox = $window.FindName('VoiceMaxSecondsBox')
+$VoiceRepairButton = $window.FindName('VoiceRepairButton')
+$VoiceReadyText = $window.FindName('VoiceReadyText')
+foreach ($language in Get-SlopWhisperLanguages) { $VoiceLanguageCombo.Items.Add($language) | Out-Null }
+$SettingsSaveButton = $window.FindName('SettingsSaveButton')
 $CustomizeNameText = $window.FindName('CustomizeNameText')
 $CustomizeColourText = $window.FindName('CustomizeColourText')
 $CustomizePersonalityText = $window.FindName('CustomizePersonalityText')
@@ -359,6 +411,20 @@ $ResizeGrip.Add_MouseLeftButtonUp({
     $ResizeGrip.ReleaseMouseCapture()
 })
 
+function Update-SlopFrameClip {
+    $Frame.Width = [Math]::Max(300.0, $window.ActualWidth - 36)
+    $Frame.Height = [Math]::Max(200.0, $window.ActualHeight - 36)
+    # Keep rectangular content inside the organic rounded body. The body radius
+    # tracks 0.11*min(W,H); asymmetry and dents can push the edge inward, so we
+    # inset a bit more and shrink the clip radius to avoid top/bottom corner cuts.
+    $clipInset = 14.0
+    $clipRadius = [Math]::Max(24.0, 0.11 * [Math]::Min($Frame.Width, $Frame.Height) - 10.0)
+    $clipRect = [System.Windows.Rect]::new($clipInset, $clipInset,
+        [Math]::Max(10.0, $Frame.Width - 2*$clipInset), [Math]::Max(10.0, $Frame.Height - 2*$clipInset))
+    $Frame.Clip = [System.Windows.Media.RectangleGeometry]::new($clipRect, $clipRadius, $clipRadius)
+    if ($script:Membrane) { $script:Membrane.SetFrame([float]$Frame.Width, [float]$Frame.Height) }
+}
+
 # The idle pea and its shadow must stay inside the window at every size.
 # Hardcoded coordinates were left behind when the window was shrunk, which
 # clipped the only visible collapsed element entirely.
@@ -402,8 +468,9 @@ function Update-SlopFaceRegion {
         $script:FaceRegion = @{ Width = $layer.Width; Height = $layer.Height }
     }
     else {
-        $w = 48.0
-        $h = 48.0
+        # Slightly larger compact region gives particles room without leaving the pea.
+        $w = 72.0
+        $h = 72.0
         $px = [System.Windows.Controls.Canvas]::GetLeft($PeaCanvas)
         $py = [System.Windows.Controls.Canvas]::GetTop($PeaCanvas)
         if ([double]::IsNaN($px)) { $px = ([Math]::Max(26.0, $window.ActualWidth) - 26.0) / 2.0 }
@@ -413,7 +480,7 @@ function Update-SlopFaceRegion {
         [System.Windows.Controls.Canvas]::SetLeft($layer, $px + 13.0 - $w / 2.0)
         [System.Windows.Controls.Canvas]::SetTop($layer, $py + 13.0 - $h / 2.0)
         $layer.Clip = [System.Windows.Media.RectangleGeometry]::new(
-            [System.Windows.Rect]::new(0.0, 0.0, $w, $h), 10.0, 10.0)
+            [System.Windows.Rect]::new(0.0, 0.0, $w, $h), 12.0, 12.0)
         $script:FaceRegion = @{ Width = $w; Height = $h }
     }
 }
@@ -422,20 +489,7 @@ $window.Add_SizeChanged({
     param($s, $e)
     $script:WorkArea = [System.Windows.SystemParameters]::WorkArea
     # 18 px of goo room on every side, matching the frame engine's margin.
-    $Frame.Width = [Math]::Max(300.0, $window.ActualWidth - 36)
-    $Frame.Height = [Math]::Max(200.0, $window.ActualHeight - 36)
-    # The clip used to stay at 440x286, which clipped all chat content to the
-    # original 484x330 box when maximized. Rebuild it for the new size.
-    # Inset 8 leaves room for InLimit dents + stroke; the radius must track the
-    # body's rounded frame (0.11*min(W,H)) or clip corners poke outside the blob.
-    # The static per-instance asymmetry can dent the body ~2px further inward
-    # than the symmetric base shape, so the content clip sits 10px in (was 8).
-    $clipInset = 10.0
-    $clipRadius = [Math]::Max(26.0, 0.11 * [Math]::Min($Frame.Width, $Frame.Height) - 5.0)
-    $clipRect = [System.Windows.Rect]::new($clipInset, $clipInset,
-        [Math]::Max(10.0, $Frame.Width - 2*$clipInset), [Math]::Max(10.0, $Frame.Height - 2*$clipInset))
-    $Frame.Clip = [System.Windows.Media.RectangleGeometry]::new($clipRect, $clipRadius, $clipRadius)
-    if ($script:Membrane) { $script:Membrane.SetFrame([float]$Frame.Width, [float]$Frame.Height) }
+    Update-SlopFrameClip
     Update-PeaAnchor
     Update-SlopFaceRegion
 })
@@ -805,6 +859,7 @@ function Finish-Stream {
     $SendBtn.Visibility = 'Visible'
     $StopBtn.Visibility = 'Collapsed'
     $SendBtn.IsEnabled = $true
+    Set-SlopMicUiState -State idle
     $InputBox.IsEnabled = $true
     # Do not pull focus back into a chat the user has already collapsed.
     if ($script:Expanded) { $InputBox.Focus() | Out-Null }
@@ -900,6 +955,87 @@ function Add-SlopThoughtBubble {
 
 # --- Four quiet destinations -------------------------------------------------
 # Fill every panel from the live config so the views cannot drift from the route.
+function Get-SlopEffectiveOpenCodeBaseUrl {
+    param([hashtable]$Config)
+    $url = if ($env:OPENCODE_BASE_URL) { [string]$env:OPENCODE_BASE_URL } else { 'http://127.0.0.1:28894' }
+    if ($Config -and -not [string]::IsNullOrWhiteSpace([string]$Config.openCodeBaseUrl)) {
+        $url = [string]$Config.openCodeBaseUrl
+    }
+    return $url.Trim().TrimEnd('/')
+}
+
+function Update-SlopVoiceReadinessUi {
+    $cfg = $script:SlopConfigResult.Config
+    if ($null -eq $cfg) { return }
+    $VoiceEnabledCheck.IsChecked = [bool]$cfg.voiceEnabled
+    $VoiceLanguageCombo.Text = [string]$cfg.whisperLanguage
+    $VoiceMaxSecondsBox.Text = [string]$cfg.voiceMaxSeconds
+    $VoiceReadyText.Text = 'Whisper readiness: ' + (Get-SlopVoiceReadinessText -Config $cfg -InstallRoot $script:VoiceInstallRoot)
+    Set-SlopMicUiState -State idle
+}
+
+function Load-SlopSettings {
+    $cfg = $script:SlopConfigResult.Config
+    if ($null -eq $cfg) { return }
+    $SettingsInstructionsBox.Text = [string]$cfg.instructions
+    $model = [string]$cfg.model
+    if ([string]::IsNullOrWhiteSpace($model)) { $model = [string]$cfg.modelName }
+    $SettingsModelBox.Text = $model
+    $SettingsBaseUrlBox.Text = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
+    $SettingsAgentIdBox.Text = [string]$cfg.agentId
+    Update-SlopVoiceReadinessUi
+}
+
+function Save-SlopSettings {
+    $cfg = @{}
+    foreach ($key in $script:SlopConfigResult.Config.Keys) { $cfg[$key] = $script:SlopConfigResult.Config[$key] }
+
+    $cfg.instructions = [string]$SettingsInstructionsBox.Text
+    $model = ([string]$SettingsModelBox.Text).Trim()
+    $cfg.model = $model
+    $cfg.modelName = $model
+    $cfg.openCodeBaseUrl = ([string]$SettingsBaseUrlBox.Text).Trim().TrimEnd('/')
+    $cfg.agentId = ([string]$SettingsAgentIdBox.Text).Trim()
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.agentId)) { $cfg.agentId = 'sloppy' }
+    $cfg.voiceEnabled = [bool]$VoiceEnabledCheck.IsChecked
+    $cfg.whisperLanguage = ([string]$VoiceLanguageCombo.Text).Trim().ToLowerInvariant()
+    $seconds = 0
+    if (-not [int]::TryParse([string]$VoiceMaxSecondsBox.Text, [ref]$seconds)) {
+        Add-SlopThoughtBubble -Text 'Max seconds must be an integer between 10 and 120.'
+        return $false
+    }
+    $cfg.voiceMaxSeconds = $seconds
+
+    $check = Test-SlopConfig -Config $cfg
+    if (-not $check.Ok) {
+        Add-SlopThoughtBubble -Text "Settings invalid: $($check.Errors -join '; ')"
+        return $false
+    }
+
+    $script:SlopConfigResult.Config = $cfg
+    $script:SlopConfigResult.Ok = $true
+    $script:SlopConfigResult.Exists = $true
+    Write-SlopConfig -Config $cfg
+    $script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
+    Initialize-SlopDestinationPanels
+    Update-SlopRouteBadgeFromConfig
+    Add-SlopThoughtBubble -Text 'Settings saved.'
+    return $true
+}
+
+function Update-SlopRouteBadgeFromConfig {
+    $cfg = $script:SlopConfigResult.Config
+    $kind = Resolve-SlopRouteKind -Config $cfg
+    $agent = if ($cfg.agent) { $cfg.agent } else { @{} }
+    $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
+    if ([string]::IsNullOrWhiteSpace($effective)) {
+        $bundled = if (Get-Command Get-SlopBundledModelName -ErrorAction SilentlyContinue) { Get-SlopBundledModelName } else { 'Gemma 4 E2B QAT Q4_0' }
+        $effective = if ($kind -eq 'local-bundled') { $bundled } else { 'unknown' }
+    }
+    $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
+    Set-SlopRouteBadge -Kind $kind -Provider $provider -Model $effective
+}
+
 function Initialize-SlopDestinationPanels {
     $cfg = $script:SlopConfigResult.Config
     $kind = Resolve-SlopRouteKind -Config $cfg
@@ -907,6 +1043,8 @@ function Initialize-SlopDestinationPanels {
     $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
     $locality = if ($cfg.providerLocality) { [string]$cfg.providerLocality } else { 'n/a' }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }
+
+    Load-SlopSettings
 
     $CustomizeNameText.Text = "Name: $($cfg.name)"
     $CustomizeColourText.Text = "Colour: $($cfg.color)"
@@ -1060,6 +1198,15 @@ $AutostartButton.Add_Click({
     Write-SlopConfig -Config $script:SlopConfigResult.Config
     Sync-SlopAutostart -Enabled ([bool]$script:SlopConfigResult.Config.autostart)
     $AutostartButton.Content = "Autostart: $(if ($script:SlopConfigResult.Config.autostart) { 'On' } else { 'Off' })"
+})
+$SettingsSaveButton.Add_Click({ param($s,$e) Save-SlopSettings | Out-Null })
+$VoiceRepairButton.Add_Click({
+    try {
+        $report = Invoke-SlopPreflight -InstallRoot $script:VoiceInstallRoot -ConfigPath (Get-SlopConfigPath)
+        Add-SlopThoughtBubble -Text ($report.Lines -join "`n")
+        Update-SlopVoiceReadinessUi
+    }
+    catch { Add-SlopThoughtBubble -Text "Voice repair failed: $($_.Exception.Message)" }
 })
 $DeleteConversationButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'conversation' })
 $DeleteSessionButton.Add_Click({ param($s,$e) Invoke-SlopDeletion -Action 'session' })
@@ -1262,10 +1409,13 @@ function Show-SlopDisclosure {
 }
 
 function Start-Stream {
-    param([string]$UserText)
+    param(
+        [string]$UserText,
+        [object[]]$Attachments = @()
+    )
 
     if ($script:IsStreaming) { return }
-    # Fail closed before any streaming state or timer exists — otherwise the
+    # Fail closed before any streaming state or timer exists - otherwise the
     # error bubble would be enqueued with nothing left to drain the queue.
     # The amber reaction is set before any blocking health probe so a cold model
     # wake still feels like the companion thinking. Failures clear it below.
@@ -1273,8 +1423,28 @@ function Start-Stream {
         -Status 'Getting ready' -Sticky
     $config = @{} + $script:SlopConfigResult.Config
     $config.openCodeSessionId = [string]$script:OpenCodeSessionId
+    # Validate config before using it: tampered or UI-invalid config must not start a request.
+    $configCheck = Test-SlopConfig -Config $config
+    if (-not $configCheck.Ok) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: invalid config: $($configCheck.Errors -join '; ')]" -IsUser $false
+        return
+    }
+    # Keep personal-opencode compatibility, but be explicit and fail closed for unsupported brains.
+    if ([string]$config.brain -notin @('builtin','custom','opencode')) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: unsupported brain '$($config.brain)']" -IsUser $false
+        return
+    }
+    if (-not [string]::IsNullOrWhiteSpace([string]$config.openCodeBaseUrl) -and
+        -not (Test-SlopLoopbackHttpUrl -Url ([string]$config.openCodeBaseUrl))) {
+        Clear-SlopSignalEvent -State $script:Motion -Id 'request:preflight' | Out-Null
+        Add-Bubble -Text "[error: openCodeBaseUrl must be a loopback http URL]" -IsUser $false
+        return
+    }
     $streamPlan = Get-SlopStreamPlan `
         -Config $config -UserText $UserText -PersonaText (Read-SlopPersona) `
+        -Attachments $Attachments `
         -LocalModelProcess $script:LocalModelProcess `
         -ScriptRootPath $PSScriptRoot -RepoRootPath (Split-Path $PSScriptRoot -Parent)
     if (-not $streamPlan.Ok) {
@@ -1344,7 +1514,7 @@ function Start-Stream {
         try {
             if ($Plan.NeedsLocalModelStart) {
                 . $Plan.LocalModelModule
-                $start = Start-SlopLocalModel -Paths $Plan.LocalModelPaths
+                $start = Start-SlopLocalModel -Paths $Plan.LocalModelPaths -ContextSize ([int]$Plan.LocalModelContextSize)
                 if (-not $start.Ok) { $Queue.Enqueue("__ERR__$($start.Reason)"); return }
                 # Hand the owned process back to the UI thread for clean shutdown.
                 $Queue.Enqueue("__SLOPMODEL__$($start.Process.Id)")
@@ -1504,12 +1674,205 @@ function Start-Stream {
     $timer.Start()
 }
 
+function Add-SlopPendingAttachment {
+    param([Parameter(Mandatory)][hashtable]$Attachment)
+    $script:PendingAttachments.Add($Attachment) | Out-Null
+    $count = $script:PendingAttachments.Count
+    $names = @($script:PendingAttachments | ForEach-Object { [string]$_.name }) -join ', '
+    $InputPlaceholder.Text = "Attached ($count): $names"
+    $InputPlaceholder.Visibility = 'Visible'
+}
+
+function Clear-SlopPendingAttachments {
+    $script:PendingAttachments.Clear()
+    $InputPlaceholder.Text = 'Ask something.'
+    $InputPlaceholder.Visibility = if ([string]::IsNullOrEmpty($InputBox.Text)) { 'Visible' } else { 'Collapsed' }
+}
+
 $sendAction = {
     $text = $InputBox.Text.Trim()
-    if ([string]::IsNullOrWhiteSpace($text)) { return }
+    $atts = @($script:PendingAttachments.ToArray())
+    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -eq 0) { return }
     $InputBox.Text = ''
-    Start-Stream -UserText $text
+    Clear-SlopPendingAttachments
+    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -gt 0) { $text = 'Please analyze the attached file(s).' }
+    Start-Stream -UserText $text -Attachments $atts
 }
+
+$AttachBtn.Add_Click({
+    try {
+        Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
+        $dlg = [System.Windows.Forms.OpenFileDialog]::new()
+        $dlg.Title = 'Attach audio or image'
+        $dlg.Filter = 'Media files|*.wav;*.mp3;*.m4a;*.ogg;*.flac;*.png;*.jpg;*.jpeg;*.webp;*.gif|Audio|*.wav;*.mp3;*.m4a;*.ogg;*.flac|Images|*.png;*.jpg;*.jpeg;*.webp;*.gif|All files|*.*'
+        $dlg.Multiselect = $true
+        if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
+        foreach ($f in @($dlg.FileNames)) {
+            $att = New-SlopAttachmentFromFile -Path $f
+            Add-SlopPendingAttachment -Attachment $att
+        }
+    }
+    catch {
+        Add-Bubble -Text "[error: attachment failed: $($_.Exception.Message)]" -IsUser $false
+    }
+})
+
+$script:MicRecording = $false
+$script:MicRecorderPath = $null
+$script:MicCapTimer = $null
+$script:VoiceBusy = $false
+$script:VoiceMaxSeconds = 30
+$script:VoiceQueue = [System.Collections.Concurrent.ConcurrentQueue[string]]::new()
+
+function Set-SlopMicUiState {
+    param([ValidateSet('idle','recording','transcribing')][string]$State)
+    if ($State -eq 'recording') {
+        $MicBtn.Content = '■'
+        $MicBtn.ToolTip = 'Recording... click to stop'
+        $MicBtn.IsEnabled = $true
+        $SendBtn.IsEnabled = $false
+    }
+    elseif ($State -eq 'transcribing') {
+        $MicBtn.Content = '⏳'
+        $MicBtn.ToolTip = 'Transcribing locally...'
+        $MicBtn.IsEnabled = $false
+        $SendBtn.IsEnabled = $false
+    }
+    else {
+        $MicBtn.Content = '🎤'
+        $MicBtn.ToolTip = if ($script:SlopConfigResult.Config.voiceEnabled) { 'Voice note to text (click to start/stop)' } else { 'Enable voice input in Settings' }
+        $MicBtn.IsEnabled = [bool]$script:SlopConfigResult.Config.voiceEnabled
+        $SendBtn.IsEnabled = -not [bool]$script:IsStreaming
+    }
+}
+
+function Start-SlopVoiceTranscription {
+    param([Parameter(Mandatory)][string]$WavPath)
+    $cfg = $script:SlopConfigResult.Config
+    $paths = Get-SlopWhisperPaths -InstallRoot $script:VoiceInstallRoot `
+        -CliFile ([string]$cfg.whisperRuntimeFile) -ModelFile ([string]$cfg.whisperModelFile)
+    $ready = Test-SlopWhisperReady -Paths $paths
+    if (-not $ready.Ok) {
+        Add-Bubble -Text "[error: voice input unavailable: $($ready.Errors -join '; ')]" -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    $script:VoiceBusy = $true
+    Set-SlopMicUiState -State transcribing
+    Start-ThreadJob -ScriptBlock {
+        param($AudioModule, $Paths, $Wav, $Language, $Queue)
+        try {
+            . $AudioModule
+            $result = Invoke-SlopWhisperTranscription -Paths $Paths -WavPath $Wav -Language $Language -TimeoutSeconds 90
+            if (-not $result.Ok) { $Queue.Enqueue("__VOICEERR__$($result.Reason)"); return }
+            if ([string]::IsNullOrWhiteSpace($result.Text)) { $Queue.Enqueue('__VOICEERR__I did not catch that.'); return }
+            $Queue.Enqueue("__VOICE__$($result.Text)")
+        }
+        catch { $Queue.Enqueue("__VOICEERR__$($_.Exception.Message)") }
+        finally {
+            if (Test-Path -LiteralPath $Wav) { Remove-Item -LiteralPath $Wav -Force -ErrorAction SilentlyContinue }
+            $Queue.Enqueue('__VOICEDONE__')
+        }
+    } -ArgumentList (Join-Path $PSScriptRoot 'Slop.Audio.ps1'), $paths, $WavPath, ([string]$cfg.whisperLanguage), $script:VoiceQueue
+}
+
+function Stop-SlopMicAndTranscribe {
+    if (-not $script:MicRecording) { return }
+    $script:MicRecording = $false
+    if ($script:MicCapTimer) { $script:MicCapTimer.Stop() }
+    [SlopWinMM]::mciSendString('stop slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+    [SlopWinMM]::mciSendString(('save slopmic "' + $script:MicRecorderPath + '"'), $null, 0, [IntPtr]::Zero) | Out-Null
+    [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+    $wav = $script:MicRecorderPath
+    $script:MicRecorderPath = $null
+    if (-not $wav -or -not (Test-Path -LiteralPath $wav -PathType Leaf)) {
+        Add-Bubble -Text '[error: microphone recording was not saved]' -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    if ((Get-Item -LiteralPath $wav).Length -le 44) {
+        Remove-Item -LiteralPath $wav -Force -ErrorAction SilentlyContinue
+        Add-Bubble -Text '[error: microphone recording was empty]' -IsUser $false
+        Set-SlopMicUiState -State idle
+        return
+    }
+    Start-SlopVoiceTranscription -WavPath $wav
+}
+
+$script:VoiceTimer = [System.Windows.Threading.DispatcherTimer]::new()
+$script:VoiceTimer.Interval = [TimeSpan]::FromMilliseconds(40)
+$script:VoiceTimer.Add_Tick({
+    $q = $script:VoiceQueue
+    if ($null -eq $q) { return }
+    $tok = $null
+    while ($q.TryDequeue([ref]$tok)) {
+        if ($tok.StartsWith('__VOICE__')) {
+            # Start-Stream already adds the user bubble; do not add it twice.
+            Start-Stream -UserText $tok.Substring(9) -Attachments @()
+        }
+        elseif ($tok.StartsWith('__VOICEERR__')) {
+            Add-Bubble -Text "[error: $($tok.Substring(12))]" -IsUser $false
+            Set-SlopMicUiState -State idle
+        }
+        elseif ($tok -eq '__VOICEDONE__') { Set-SlopMicUiState -State idle }
+    }
+})
+$script:VoiceTimer.Start()
+
+$script:MicCapTimer = [System.Windows.Threading.DispatcherTimer]::new()
+$script:MicCapTimer.Add_Tick({
+    if ($script:MicRecording) {
+        Stop-SlopMicAndTranscribe
+        Add-Bubble -Text "Recording stopped at the $($script:VoiceMaxSeconds)s limit." -IsUser $false
+    }
+})
+
+$MicBtn.Add_Click({
+    try {
+        if ($script:VoiceBusy) { return }
+        if ($script:IsStreaming) {
+            Add-Bubble -Text 'Wait for the current reply before starting a voice note.' -IsUser $false
+            return
+        }
+        $cfg = $script:SlopConfigResult.Config
+        if (-not $cfg.voiceEnabled) {
+            Add-Bubble -Text 'Enable voice input in Settings.' -IsUser $false
+            return
+        }
+        if ($script:MicRecording) { Stop-SlopMicAndTranscribe; return }
+        if (-not ('SlopWinMM' -as [type])) {
+            Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class SlopWinMM {
+  [DllImport("winmm.dll", CharSet=CharSet.Auto)] public static extern int mciSendString(string command, StringBuilder buffer, int bufferSize, IntPtr hwndCallback);
+}
+"@
+        }
+        $tmp = Join-Path ([IO.Path]::GetTempPath()) ("slop-mic-" + [guid]::NewGuid().ToString('N') + '.wav')
+        $script:MicRecorderPath = $tmp
+        [SlopWinMM]::mciSendString('open new type waveaudio alias slopmic', $null, 0, [IntPtr]::Zero) | Out-Null
+        $result = [SlopWinMM]::mciSendString('record slopmic', $null, 0, [IntPtr]::Zero)
+        if ($result -ne 0) { throw "winmm record failed (code $result)" }
+        $script:MicRecording = $true
+        $script:VoiceMaxSeconds = [int]$cfg.voiceMaxSeconds
+        $script:MicCapTimer.Interval = [TimeSpan]::FromSeconds($script:VoiceMaxSeconds)
+        $script:MicCapTimer.Start()
+        Set-SlopMicUiState -State recording
+    }
+    catch {
+        $script:MicRecording = $false
+        if ($script:MicCapTimer) { $script:MicCapTimer.Stop() }
+        try { [SlopWinMM]::mciSendString('close slopmic', $null, 0, [IntPtr]::Zero) | Out-Null } catch {}
+        if ($script:MicRecorderPath -and (Test-Path -LiteralPath $script:MicRecorderPath)) {
+            Remove-Item -LiteralPath $script:MicRecorderPath -Force -ErrorAction SilentlyContinue
+        }
+        $script:MicRecorderPath = $null
+        Set-SlopMicUiState -State idle
+        Add-Bubble -Text "[error: mic recording unavailable: $($_.Exception.Message)]" -IsUser $false
+    }
+})
 
 $SendBtn.Add_Click($sendAction)
 $StopBtn.Add_Click({ Request-StopStream })
@@ -1590,26 +1953,16 @@ elseif (-not $script:SlopConfigResult.Ok) {
         $script:SlopConfigResult = @{ Ok = $true; Exists = $true; Config = $saved; Reason = $null }
     }
 }
+Set-SlopMicUiState -State idle
 $script:LocalModelProcess = $null
+$script:OpenCodeBaseUrl = Get-SlopEffectiveOpenCodeBaseUrl -Config $script:SlopConfigResult.Config
 $script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
     [System.Windows.Media.BrushConverter]::new().ConvertFromString(
         (Get-SlopIdentityColor -ColorKey $script:SlopConfigResult.Config.color)).Color)
 $IdentityRing.Fill = $script:IdentityBrush
 
 # Show the configured route from the very first frame, not just after a send.
-$startupConfig = $script:SlopConfigResult.Config
-$startupKind = Resolve-SlopRouteKind -Config $startupConfig
-$startupAgent = if ($startupConfig.agent) { $startupConfig.agent } else { @{} }
-$startupModel = Resolve-SlopEffectiveModel -Agent $startupAgent -Config $startupConfig
-if ([string]::IsNullOrWhiteSpace($startupModel)) {
-    $startupModel = if ($startupKind -eq 'local-bundled') { 'Qwen3 4B Q4_K_M' } else { 'unknown' }
-}
-$startupProvider = if ($startupConfig.provider) { [string]$startupConfig.provider } else { 'bundled' }
-$RouteBadge.Text = Get-SlopRouteBadge -Kind $startupKind -Provider $startupProvider -Model $startupModel
-[System.Windows.Automation.AutomationProperties]::SetName($RouteBadge, $RouteBadge.Text)
-$RouteBadge.ToolTip = if ((Get-SlopRouteCatalog)[$startupKind].TermsRequired) {
-    'This route sends data to a remote model provider. Open Privacy for the exact path.'
-} else { 'Model requests stay on this PC.' }
+Update-SlopRouteBadgeFromConfig
 
 $script:SenseEnabled = Get-SlopSenseEnabled
 $script:SenseAccumulator = 0.0
@@ -1696,9 +2049,17 @@ $script:MotionTimer.Add_Tick({
     }
     if ($frozen) { $speed = 0.0 }
     if ($script:ReducedMotion) { $frozen = $true; $speed = 0.0 }
-    $pattern = $script:Motion.FaceExpression
-    if ($pattern -eq 'peek' -or $sig.Kind -in @('approval','stalled','warning','thinking')) {
-        $pattern = 'spiral'
+    $pattern = switch -Exact ($sig.Kind) {
+        'working'  { 'ring' }
+        'tool'     { 'line' }
+        'success'  { 'burst' }
+        'error'    { 'cross' }
+        'critical' { 'cross' }
+        'approval' { 'spiral' }
+        'stalled'  { 'spiral' }
+        'warning'  { 'spiral' }
+        'thinking' { 'spiral' }
+        default    { $script:Motion.FaceExpression }
     }
     Update-SlopFaceLayer -Target $script:FaceLayer -Time ([DateTime]::UtcNow.Ticks / 1e7) -Speed $speed -Width $script:FaceRegion.Width -Height $script:FaceRegion.Height -Frozen:$frozen -Pattern $pattern -Inset 3.0
 })

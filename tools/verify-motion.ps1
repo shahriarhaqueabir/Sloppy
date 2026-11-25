@@ -245,32 +245,45 @@ $env:OPENCODE_PASSWORD = $password
 
 # A developer checkout usually has no installed bundled brain at
 # %LOCALAPPDATA%\Programs\Sloppy. When that install is absent, SLOP_LIVE_RUNTIME_DIR
-# (a llama.cpp bin folder) and SLOP_LIVE_MODEL_FILE (any chat-capable GGUF) let the
-# live probe exercise the same local-bundled route without copying gigabytes.
-# Both are supplied by the caller, so no machine-specific paths live in this repo.
+# (a llama.cpp bin folder), SLOP_LIVE_MODEL_FILE (a chat-capable GGUF), and
+# optionally SLOP_LIVE_MMPROJ_FILE let the live probe exercise the same
+# local-bundled route without copying gigabytes. Values are caller-supplied so
+# no machine-specific paths live in this repo.
 $script:OriginalLocalAppData = $env:LOCALAPPDATA
 $script:StandInModelPath = $null
+$script:StandInMmprojPath = $null
 $installRoot = Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'
-if (-not (Test-Path -LiteralPath (Join-Path $installRoot 'runtime\llama-server.exe')) -or
-    -not (Test-Path -LiteralPath (Join-Path $installRoot 'models\qwen3-4b-q4_k_m-00001-of-00002.gguf'))) {
+$bundledServer = Join-Path $installRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe'
+$bundledModel = Join-Path $installRoot 'models\gemma-4-E2B_q4_0-it.gguf'
+$bundledMmproj = Join-Path $installRoot 'models\gemma-4-E2B-it-mmproj.gguf'
+if (-not (Test-Path -LiteralPath $bundledServer) -or
+    -not (Test-Path -LiteralPath $bundledModel) -or
+    -not (Test-Path -LiteralPath $bundledMmproj)) {
     $runtimeBin = $env:SLOP_LIVE_RUNTIME_DIR
     $modelFile = $env:SLOP_LIVE_MODEL_FILE
+    $mmprojFile = $env:SLOP_LIVE_MMPROJ_FILE
     if ([string]::IsNullOrWhiteSpace($runtimeBin) -or -not (Test-Path -LiteralPath (Join-Path $runtimeBin 'llama-server.exe'))) {
         throw 'bundled brain is not installed; set SLOP_LIVE_RUNTIME_DIR to a llama.cpp bin folder'
     }
     if ([string]::IsNullOrWhiteSpace($modelFile) -or -not (Test-Path -LiteralPath $modelFile)) {
         throw 'bundled brain is not installed; set SLOP_LIVE_MODEL_FILE to a chat-capable GGUF'
     }
+    if ([string]::IsNullOrWhiteSpace($mmprojFile) -or -not (Test-Path -LiteralPath $mmprojFile)) {
+        throw 'bundled brain is not installed; set SLOP_LIVE_MMPROJ_FILE to a multimodal projector GGUF'
+    }
     $runtimeEnv = Join-Path $dir 'runtime-env'
     Remove-Item $runtimeEnv -Recurse -Force -ErrorAction SilentlyContinue
     $standInRoot = Join-Path $runtimeEnv 'Programs\Sloppy'
-    New-Item -ItemType Directory -Force -Path $standInRoot | Out-Null
-    New-Item -ItemType Junction -Path (Join-Path $standInRoot 'runtime') -Target $runtimeBin -ErrorAction Stop | Out-Null
+    $standInRuntime = Join-Path $standInRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64'
+    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $standInRuntime) | Out-Null
+    New-Item -ItemType Junction -Path $standInRuntime -Target $runtimeBin -ErrorAction Stop | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $standInRoot 'models') | Out-Null
-    $script:StandInModelPath = Join-Path $standInRoot 'models\qwen3-4b-q4_k_m-00001-of-00002.gguf'
+    $script:StandInModelPath = Join-Path $standInRoot 'models\gemma-4-E2B_q4_0-it.gguf'
+    $script:StandInMmprojPath = Join-Path $standInRoot 'models\gemma-4-E2B-it-mmproj.gguf'
     New-Item -ItemType SymbolicLink -Path $script:StandInModelPath -Target $modelFile -ErrorAction Stop | Out-Null
+    New-Item -ItemType SymbolicLink -Path $script:StandInMmprojPath -Target $mmprojFile -ErrorAction Stop | Out-Null
     $env:LOCALAPPDATA = $runtimeEnv
-    "STANDIN runtime=$runtimeBin model=$modelFile"
+    "STANDIN runtime=$runtimeBin model=$modelFile mmproj=$mmprojFile"
 }
 
 $healthy = $false

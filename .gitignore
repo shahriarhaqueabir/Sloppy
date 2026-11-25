@@ -24,6 +24,14 @@ build/
 
 # Agent brainstorm artifacts
 .superpowers/
+docs/superpowers/
 
 # Test artifacts
 /testResults.xml
+
+# Bundled runtime/model caches (large binaries/models are tracked via LFS)
+runtime/models/.cache/
+runtime/models/**/.cache/
+runtime/**/.cache/
+runtime/**/*.tmp
+runtime/**/*.download

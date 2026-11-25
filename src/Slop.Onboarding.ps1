@@ -166,6 +166,13 @@ function Show-SlopOnboarding {
             <TextBlock x:Name="BrainNote" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap"
                        Margin="0,8,0,0"
                        Text="Full CLI brains arrive in the next release. For now, enter any OpenAI-compatible local server URL."/>
+            <TextBlock Text="Voice input" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="0,8,0,4"/>
+            <CheckBox x:Name="VoiceEnabledCheck" Foreground="#B8B8C0" FontSize="10" Margin="0,2,0,4"
+                      Content="Enable voice input (local Whisper small; off by default)"/>
+            <ComboBox x:Name="VoiceLanguageCombo" Height="26" FontSize="11" Width="120"
+                      HorizontalAlignment="Left" ToolTip="Whisper language"/>
+            <TextBlock x:Name="VoiceReadyText" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap"
+                       Margin="0,5,0,0" Text="Whisper readiness: checking"/>
           </StackPanel>
         </ScrollViewer>
       </Grid>
@@ -215,6 +222,9 @@ function Show-SlopOnboarding {
     $AgentBox = $dlg.FindName('AgentBox')
     $ProfileCombo = $dlg.FindName('ProfileCombo')
     $EffectiveModelText = $dlg.FindName('EffectiveModelText')
+    $VoiceEnabledCheck = $dlg.FindName('VoiceEnabledCheck')
+    $VoiceLanguageCombo = $dlg.FindName('VoiceLanguageCombo')
+    $VoiceReadyText = $dlg.FindName('VoiceReadyText')
     $StepTitle = $dlg.FindName('StepTitle')
     $ErrorText = $dlg.FindName('ErrorText')
     $BackBtn = $dlg.FindName('BackBtn')
@@ -231,6 +241,10 @@ function Show-SlopOnboarding {
     foreach ($preset in Get-SlopPersonalities) { $ProfileCombo.Items.Add($preset) | Out-Null }
     foreach ($profile in Get-SlopCapabilityProfiles) { $ProfileCombo.Items.Add($profile) | Out-Null }
     $ProfileCombo.SelectedItem = if ($Config.capabilityProfile) { [string]$Config.capabilityProfile } else { 'companion' }
+    $VoiceEnabledCheck.IsChecked = [bool]$Config.voiceEnabled
+    foreach ($language in Get-SlopWhisperLanguages) { $VoiceLanguageCombo.Items.Add($language) | Out-Null }
+    $VoiceLanguageCombo.SelectedItem = if ($Config.whisperLanguage) { [string]$Config.whisperLanguage } else { 'auto' }
+    $VoiceReadyText.Text = 'Whisper readiness: ' + (Get-SlopVoiceReadinessText -Config $Config)
 
     $titles = @(
         '1 of 4 · What should I call you?',
@@ -336,6 +350,8 @@ function Show-SlopOnboarding {
         $result.color = $script:SelectedColor
         $result.personality = $script:SelectedPreset
         $result.autostart = [bool]$Config.autostart
+        $result.voiceEnabled = [bool]$VoiceEnabledCheck.IsChecked
+        $result.whisperLanguage = ([string]$VoiceLanguageCombo.SelectedItem).Trim().ToLowerInvariant()
 
         if ($BrainCustom.IsChecked) {
             $result.brain = 'custom'

@@ -59,4 +59,26 @@ Describe 'Slop.Onboarding' {
         $result.personaText | Should -Match 'You are Pip'
         $result.brain | Should -Be 'builtin'
     }
+
+    It 'keeps four screens and exposes voice controls on Screen 4' {
+        $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.Onboarding.ps1') -Raw
+        $src | Should -Match 'x:Name="Screen4"'
+        $src | Should -Match 'x:Name="VoiceEnabledCheck"'
+        $src | Should -Match 'x:Name="VoiceLanguageCombo"'
+        $src | Should -Match 'x:Name="VoiceReadyText"'
+        $src | Should -Match 'Get-SlopWhisperLanguages'
+        $src | Should -Match 'Get-SlopVoiceReadinessText -Config \$Config'
+        $src | Should -Not -Match 'ValidateRange\(1,5\)'
+    }
+
+    It 'writes voice settings from the wizard into the version 2 result' {
+        $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.Onboarding.ps1') -Raw
+        $src | Should -Match '\$result\.voiceEnabled = \[bool\]\$VoiceEnabledCheck\.IsChecked'
+        $src | Should -Match '\$result\.whisperLanguage = \(\[string\]\$VoiceLanguageCombo\.SelectedItem\)\.Trim\(\)\.ToLowerInvariant\(\)'
+        $fallback = New-SlopFallbackOnboardingResult -Config @{ name = 'Pip'; voiceEnabled = $true }
+        (Test-SlopConfig -Config $fallback).Ok | Should -BeTrue
+        $fallback.version | Should -Be 2
+        $fallback.voiceEnabled | Should -BeTrue
+        $fallback.whisperLanguage | Should -Be 'auto'
+    }
 }

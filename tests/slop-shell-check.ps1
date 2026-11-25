@@ -13,7 +13,7 @@ $m = [regex]::Match($src, '\$xaml = @''\r?\n(?<xaml>.*?)\r?\n''@', 'Singleline')
 Assert-True $m.Success 'XAML here-string found'
 if ($m.Success) {
     $w = [System.Windows.Markup.XamlReader]::Parse($m.Groups['xaml'].Value)
-    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','AttachBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing')) {
+    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','AttachBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     # Four quiet destinations: each panel and its read-only views must exist.
@@ -21,7 +21,7 @@ if ($m.Success) {
                         'PrivacyRouteText','PrivacyTermsLink','PrivacyConversationCopy','PrivacySessionCopy','PrivacyLocalDataCopy')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
-    Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3') 'route badge discloses the bundled model from first frame'
+    Assert-True ($w.FindName('RouteBadge').Text -match 'Gemma 4 E2B QAT Q4_0') 'route badge discloses the bundled model from first frame'
     # BrushConverter returns a Brush; SolidColorBrush::new needs a Color. A missed
     # `.Color` crashed ShowDialog in the live verifier, so guard it statically too.
     Assert-True ($src -match 'IdentityBrush = \[System\.Windows\.Media\.SolidColorBrush\]::new\(\s*\[System\.Windows\.Media\.BrushConverter\]::new\(\)\.ConvertFromString\([\s\S]*?\)\.Color\)') 'identity brush converts to Color before constructing SolidColorBrush'
@@ -29,7 +29,7 @@ if ($m.Success) {
     # bundled brain needed starting, but no worker ever started it, so the first
     # send was refused by port 18080. Guard all three links in that chain.
     Assert-True ($src -match 'Get-SlopStreamPlan[\s\S]{0,240}-LocalModelProcess \$script:LocalModelProcess') 'stream plan receives the already-owned local model process'
-    Assert-True ($src -match 'Start-ThreadJob[\s\S]{0,1200}Start-SlopLocalModel -Paths \$Plan\.LocalModelPaths') 'adapter worker wakes the bundled brain before sending'
+    Assert-True ($src -match 'Start-ThreadJob[\s\S]{0,1400}Start-SlopLocalModel -Paths \$Plan\.LocalModelPaths -ContextSize \(\[int\]\$Plan\.LocalModelContextSize\)') 'adapter worker wakes the bundled brain with configured context size'
     Assert-True ($src -match "tok\.StartsWith\('__SLOPMODEL__'\)") 'UI thread records the worker-started model process for clean shutdown'
     $controls = $w.FindName('ControlDots')
     Assert-True ($controls -is [System.Windows.Controls.Border]) 'control actions are grouped in a separate glass tile'
@@ -77,7 +77,7 @@ Assert-True ($src -match '\$script:Membrane\.Update') 'membrane physics runs on 
 Assert-True ($src -match '\$BodyPath\.Data\s*=') 'body path data is written each tick'
 Assert-True ($src -match '\$HeadHighlight\.Data\s*=') 'rim highlight follows the outline'
 Assert-True ($src -match '\$Frame\.Clip\s*=') 'content clip is rebuilt on resize'
-Assert-True ($src -match 'Add_SizeChanged(?s:.*?)\$Frame\.Clip\s*=') 'clip rebuild lives in the SizeChanged handler'
+Assert-True ($src -match 'Add_SizeChanged(?s:.*?)Update-SlopFrameClip') 'clip/layout rebuild lives in the SizeChanged handler'
 Assert-True ($src -notmatch 'MaxHeight="235"') 'chat scroll is not height-capped'
 Assert-True ($src -match '\$script:ExpandedSize') 'expanded size is remembered'
 Assert-True ($src -match '\$script:RestoreCompact') 'compact size restores after collapse'
@@ -97,8 +97,9 @@ Assert-True ($src -match "startslop.*stopslop.*slopstatus") 'profile helper shor
 Assert-True ($src -match "Add-Bubble|function Add-Bubble") 'bubble renderer exists'
 Assert-True ($src -match 'AllowEmptyString\(\)\]\[string\]\$Text') 'streaming placeholder can start with empty bubble text'
 Assert-True ($src -match '(?m)^#requires -Version 7\.6') 'entry point declares the PowerShell floor'
-Assert-True ($src -match '\$clipInset = 10\.0') 'content clip uses a 10px inset (asymmetric dent headroom)'
-Assert-True ($src -match '\$clipRadius = \[Math\]::Max\(26\.0, 0\.11') 'content clip radius tracks the body corner radius'
+Assert-True ($src -match '\$clipInset = 14\.0') 'content clip uses a 14px inset for rounded-corner safety'
+Assert-True ($src -match '\$clipRadius = \[Math\]::Max\(24\.0, 0\.11') 'content clip radius tracks the body corner radius with safety margin'
+Assert-True ($src -match 'function Update-SlopFrameClip') 'frame clip/layout updates through a dedicated function'
 Assert-True ($src -match '\$this\.IsEnabled = \$false') 'approval buttons ignore a rapid second click'
 Assert-True ($src -notmatch 'llama\.cpp Pal') 'stale llama.cpp product description is gone'
 
@@ -123,18 +124,18 @@ Assert-True ($src -match '\$script:PseudoMaximized') 'work-area large state is t
 Assert-True ($src -match '\[System\.Windows\.SystemParameters\]::WorkArea') 'large mode sizes to the work area'
 Assert-True ($src -notmatch "WindowState\s*=\s*'Maximized'") 'shell no longer toggles true maximize'
 Assert-True (([regex]::Matches($src, [regex]::Escape('-and -not $script:PseudoMaximized'))).Count -eq 2) 'expand and collapse both respect the large state'
-Assert-True ($src -match '\$pattern = \$script:Motion\.FaceExpression') 'face tick chooses a pattern before drawing'
+Assert-True ($src -match '\$pattern = switch -Exact \(\$sig\.Kind\)') 'face tick chooses a pattern from effective signal before drawing'
 Assert-True ($src -match '\$sig = Get-SlopSignal -State \$script:Motion') 'face tick resolves the effective signal explicitly'
-Assert-True ($src -match '\$sig\.Kind -in @\(''approval'',''stalled''') 'thinking kinds drive the frozen face state'
+Assert-True ($src -match '\$sig\.Kind -in @\(''approval'',''stalled'',''warning'',''thinking'',''error'',''critical''\)') 'attention/error kinds drive the frozen face state'
 Assert-True ($src -match '0\.3 \+ 1\.7 \* \$script:Motion\.MoodPulse\.Value') 'success face speed follows the mood pulse'
 Assert-True ($src -notmatch 'Update-SlopFaceLayer[^\r\n]*-Pattern \$script:Motion\.FaceExpression') 'face pattern is chosen, not passed straight from the idle action'
 Assert-True ($src -notmatch 'ThoughtAccumulator') 'old random thought timer is gone'
 Assert-True ($src -match 'function Update-SlopFaceRegion') 'face region has a dedicated layout function'
 Assert-True ($src -match '\$Stage\.Children\.Insert\(\$idx, \$layer\)') 'face layer is inserted before the Frame in z-order'
-Assert-True ($src -match 'System\.Windows\.Rect\]::new\(0\.0, 0\.0, \$w, \$h\), 10\.0, 10\.0') 'compact face region uses a rounded clip'
+Assert-True ($src -match 'System\.Windows\.Rect\]::new\(0\.0, 0\.0, \$w, \$h\), 12\.0, 12\.0') 'compact face region uses a rounded clip'
 Assert-True ($src -match '\$layer\.Clip = \$BodyPath\.Data') 'expanded face region clips to the membrane path'
 Assert-True ($src -match '\$script:FaceRegion\.Width') 'motion tick uses the computed face region size'
-Assert-True ($src -match '-Inset 3\.0') 'motion tick passes the 3px inset'
+Assert-True ($src -match '-Inset 3\.0') 'motion tick passes the configured inset'
 
 Assert-True ($src -match '\$x = if \(\$script:ReducedMotion\) \{ 0\.0 \}') 'reduced motion zeroes the pea sway'
 Assert-True ($src -match 'if \(\$script:ReducedMotion\) \{\s*\$frozen = \$true;\s*\$speed = 0\.0\s*\}') 'reduced motion freezes the particle field'
@@ -150,6 +151,44 @@ Assert-True ($src -match 'Animate-BrushTo -Brush \$script:HighlightBrush') 'high
 Assert-True ($src -match '\$script:WorkArea = \[System\.Windows\.SystemParameters\]::WorkArea') 'work area is cached in script scope'
 Assert-True ($src -match '\$maxLeft = \[Math\]::Max\(\$wa\.X, \$wa\.Right - \$window\.ActualWidth\)') 'wander clamps against the work area'
 Assert-True ($src -match '\$window\.Left = \[Math\]::Min\(\$maxLeft') 'wander writes the clamped left position'
+
+Assert-True ($src -match 'Slop\.Audio\.ps1') 'headless audio module is dot-sourced by the shell'
+Assert-True ($src -match 'slop-preflight\.ps1') 'preflight tool is dot-sourced by the shell'
+Assert-True ($src -match '\$VoiceEnabledCheck\.IsChecked = \[bool\]\$cfg\.voiceEnabled') 'Settings loads voiceEnabled from config'
+Assert-True ($src -match '\$VoiceLanguageCombo\.Text = \[string\]\$cfg\.whisperLanguage') 'Settings loads whisperLanguage from config'
+Assert-True ($src -match '\$VoiceMaxSecondsBox\.Text = \[string\]\$cfg\.voiceMaxSeconds') 'Settings loads voiceMaxSeconds from config'
+Assert-True ($src -match '\$cfg\.voiceEnabled = \[bool\]\$VoiceEnabledCheck\.IsChecked') 'Settings saves voiceEnabled'
+Assert-True ($src -match '\$cfg\.whisperLanguage = \(\[string\]\$VoiceLanguageCombo\.Text\)\.Trim\(\)\.ToLowerInvariant\(\)') 'Settings saves a normalized whisperLanguage'
+Assert-True ($src -match '\[int\]::TryParse\(\[string\]\$VoiceMaxSecondsBox\.Text') 'Settings saves a validated voiceMaxSeconds'
+Assert-True ($src -match 'Invoke-SlopPreflight -InstallRoot \$script:VoiceInstallRoot') 'Repair voice runs the report-only preflight'
+Assert-True ($src -match 'Get-SlopVoiceReadinessText -Config \$cfg') 'Settings shows exact Whisper readiness'
+
+Assert-True ($src -match 'function Start-SlopVoiceTranscription') 'voice transcription has a named worker starter'
+Assert-True ($src -match 'Invoke-SlopWhisperTranscription -Paths \$Paths -WavPath \$Wav') 'voice worker invokes the local Whisper wrapper'
+Assert-True ($src -match 'Start-ThreadJob -ScriptBlock \{[\s\S]{0,900}__VOICE__') 'voice job enqueues transcript markers'
+Assert-True ($src -match 'Start-Stream -UserText \$tok\.Substring\(9\) -Attachments @\(\)') 'transcript uses the existing text send path'
+Assert-True ($src -notmatch '\$MicBtn[\s\S]{0,2400}New-SlopAttachmentFromFile -Path \$script:MicRecorderPath') 'Mic stop no longer attaches the WAV'
+Assert-True ($src -match '\$script:VoiceQueue = \[System\.Collections\.Concurrent\.ConcurrentQueue\[string\]\]::new\(\)') 'voice uses a dedicated dispatcher queue'
+Assert-True ($src -match '\$script:MicCapTimer\.Interval = \[TimeSpan\]::FromSeconds\(\$script:VoiceMaxSeconds\)') 'hard recording cap is configured from voiceMaxSeconds'
+Assert-True ($src -match 'Remove-Item -LiteralPath \$Wav -Force -ErrorAction SilentlyContinue') 'temporary WAV is deleted in the worker finally block'
+Assert-True ($src -match '\$SendBtn\.IsEnabled = -not \[bool\]\$script:IsStreaming') 'voice idle state never re-enables Send during a stream'
+Assert-True ($src -match "tok\.StartsWith\('__VOICE__'\)") 'voice success marker is handled before plain text'
+
+$gitattributes = Get-Content (Join-Path $PSScriptRoot '../.gitattributes') -Raw
+$noticesPath = Join-Path $PSScriptRoot '../docs/third-party-notices.md'
+$readme = Get-Content (Join-Path $PSScriptRoot '../README.md') -Raw
+$architecture = Get-Content (Join-Path $PSScriptRoot '../docs/architecture.md') -Raw
+Assert-True ($gitattributes -match 'runtime/whisper/\*\* filter=lfs') 'Whisper runtime is tracked with Git LFS'
+Assert-True ($gitattributes -match '\*\.bin filter=lfs') 'Whisper model .bin files are tracked with Git LFS'
+Assert-True (Test-Path $noticesPath) 'third-party notices file exists'
+if (Test-Path $noticesPath) {
+    $notices = Get-Content $noticesPath -Raw
+    Assert-True ($notices -match 'whisper\.cpp') 'notices name whisper.cpp'
+    Assert-True ($notices -match 'MIT') 'notices record the MIT license'
+    Assert-True ($notices -match '55356645c2b361a969dfd0ef2c5a50d530afd8d5') 'notices pin the small model SHA-1'
+}
+Assert-True ($readme -match 'opt-in push-to-talk audio is transcribed locally') 'README documents shipped local voice transcription'
+Assert-True ($architecture -match 'bundled Whisper small') 'architecture documents local voice input'
 
 Describe 'Slop shell / XAML static checks' {
     foreach ($check in $script:SlopChecks) {

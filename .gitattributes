@@ -1,0 +1,13 @@
+# Large runtime/model artifacts for Sloppy bundled brain
+runtime/**/*.gguf filter=lfs diff=lfs merge=lfs -text
+runtime/**/*.exe filter=lfs diff=lfs merge=lfs -text
+runtime/**/*.dll filter=lfs diff=lfs merge=lfs -text
+runtime/**/*.lib filter=lfs diff=lfs merge=lfs -text
+runtime/**/*.exp filter=lfs diff=lfs merge=lfs -text
+
+# Showcase media
+assets/*.mp4 filter=lfs diff=lfs merge=lfs -text
+
+# Whisper runtime and model artifacts for Tier 1 voice input
+runtime/whisper/** filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text

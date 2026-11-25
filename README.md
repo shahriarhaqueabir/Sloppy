@@ -2,9 +2,7 @@
   <img src="assets/Sloppy.gif" alt="Sloppy demo — animated desktop companion reacting to agent state" width="400">
 </p>
 
-<p align="center">
-  <a href="assets/Sloppy.mp4">▶ Watch the full-quality video (MP4)</a>
-</p>
+
 
 # Sloppy
 
@@ -89,9 +87,10 @@ Requirements:
 - Windows
 - PowerShell 7.6 or later, in STA mode
 - Git LFS (to fetch bundled runtime/model artifacts in a source checkout)
+- Optional for voice: bundled `whisper-cli.exe` and `ggml-small.bin` under `runtime/whisper/` (Git LFS)
 - Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
-Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain is text-only in the current request path; multimodal runtime hooks are ready, but image/audio capture and request wiring are not shipped yet.
+Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The bundled Gemma 4 E2B brain answers text locally, and opt-in push-to-talk audio is transcribed locally by bundled Whisper small before being sent through the same text path. Nothing is uploaded for Tier 1. Image capture and `mmproj` remain unused readiness hooks; there are no spoken replies.
 
 ## 📋 Playbook (short)
 
@@ -105,7 +104,7 @@ Sloppy prefers whatever OpenCode config you already have. If there is none, it i
 
 Sloppy is a desktop frontend, not a model, a standalone chatbot, or a hosted service. Sessions, tools, providers and permissions belong to OpenCode. That boundary is deliberate: one broker owns capability, so the UI never has to guess what a model is allowed to do.
 
-The companion product is still early. Some ideas in [the plans](docs/superpowers/plans) are directions, not shipped features. The release notes and [verification report](docs/superpowers/reports/2026-11-23-sloppy-companion-product-v1-verification.md) keep the verified and deferred work separate.
+The companion product is still early. [Product direction](docs/product-direction.md) records the candidate modes; shipped behavior is documented in [architecture](docs/architecture.md) and the [technical showcase](docs/SHOWCASE.md).
 
 ## Proof
 
@@ -127,7 +126,7 @@ The tour guard checks all source anchors, so the architecture walkthrough cannot
 - [Architecture](docs/architecture.md)
 - [Technical showcase](docs/SHOWCASE.md)
 - [18-step architecture CodeTour](.tours/architect-slop-architecture.tour)
-- [Provider security architecture](docs/superpowers/specs/2026-11-23-sloppy-provider-security-architecture.md)
+- [OpenCode route security review](docs/security/opencode-route-review.md)
 
 ## License
 
