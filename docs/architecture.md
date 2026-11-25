@@ -266,7 +266,7 @@ HTTP routes (shell, fs, credential) bypass the agent tool layer.
 ## Visual signals
 
 The observed event inventory, priority rules, and state-to-signal table are
-maintained in the [approved visual signal design](superpowers/specs/2026-11-23-slop-signal-and-particle-integrity-design.md).
+documented in the [event-to-signal translation](#event-to-signal-translation) section.
 The frame stroke and rim highlight both follow the effective signal color, and the
 rim highlight carries a state-tinted 0x55 alpha. The priority controller is
 implemented: stalled resolves to amber, approval is a sticky priority-0 event

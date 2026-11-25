@@ -72,10 +72,10 @@ and literal `__TOK__` prefixes appearing in replies.
 
 ## Evidence
 
-- [18-step architecture CodeTour](.tours/architect-slop-architecture.tour) — source anchors are guarded by `tests/slop-tour-check.ps1`
-- [Full Pester aggregate](tests/Slop.Tests.ps1)
-- [Live UI verifier](tools/verify-motion.ps1) — expand, maximize, send, stream, drag, collapse, with teardown
-- [Geometry verifier](tools/verify-geometry.ps1) — 18 scenarios, zero failures
-- [Performance baseline](docs/performance/baseline-2026-11-23.md)
+- [18-step architecture CodeTour](../.tours/architect-slop-architecture.tour) — source anchors are guarded by `tests/slop-tour-check.ps1`
+- [Full Pester aggregate](../tests/Slop.Tests.ps1)
+- [Live UI verifier](../tools/verify-motion.ps1) — expand, maximize, send, stream, drag, collapse, with teardown
+- [Geometry verifier](../tools/verify-geometry.ps1) — 18 scenarios, zero failures
+- [Performance baseline](performance/baseline-2026-11-23.md)
 
-Quick start and the signal contract are in the [README](README.md).
+Quick start and the signal contract are in the [README](../README.md).

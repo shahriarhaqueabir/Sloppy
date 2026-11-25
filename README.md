@@ -103,7 +103,7 @@ Sloppy prefers whatever OpenCode config you already have. If there is none, it i
 
 Sloppy is a desktop frontend, not a model, a standalone chatbot, or a hosted service. Sessions, tools, providers and permissions belong to OpenCode. That boundary is deliberate: one broker owns capability, so the UI never has to guess what a model is allowed to do.
 
-The companion product is still early. Some ideas in [the plans](docs/superpowers/plans) are directions, not shipped features. The release notes and [verification report](docs/superpowers/reports/2026-11-23-sloppy-companion-product-v1-verification.md) keep the verified and deferred work separate.
+The companion product is still early. [Product direction](docs/product-direction.md) records the candidate modes; shipped behavior is documented in [architecture](docs/architecture.md) and the [technical showcase](docs/SHOWCASE.md).
 
 ## Proof
 
@@ -125,7 +125,7 @@ The tour guard checks all source anchors, so the architecture walkthrough cannot
 - [Architecture](docs/architecture.md)
 - [Technical showcase](docs/SHOWCASE.md)
 - [18-step architecture CodeTour](.tours/architect-slop-architecture.tour)
-- [Provider security architecture](docs/superpowers/specs/2026-11-23-sloppy-provider-security-architecture.md)
+- [OpenCode route security review](docs/security/opencode-route-review.md)
 
 ## License
 

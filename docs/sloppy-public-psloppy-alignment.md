@@ -2,7 +2,15 @@
 
 - **Date:** 2026-11-25
 - **Scope:** Focused on `E:\Projects\repos\public\Sloppy/` with alignment planning for `E:\Projects\repos\private\PSloppy/`
-- **Status:** Recon/findings only. No Sloppy code changes made during this pass. No commits/pushes made.
+- **Status:** Historical recon snapshot. The current-status section below supersedes stale release claims; no pushes were made.
+
+## Current status (2026-11-25)
+
+- Public Sloppy PR #1 merged as `4237cae`; `origin/main` is `0cffd5d`. The release-sync branch remains local-only and unpublished.
+- `LICENSE` attribution is `shahriar` (`8d43148`); `docs/superpowers/**` is untracked from the public index (`060d380`) and intentionally out of published docs.
+- Public verification after the explicit-path commits: canonical verify 543/543, exit 0; tour guard 38/38. No live UI smoke was run: no bundled brain at the app install root and no `SLOP_LIVE_*` variables.
+- PSloppy alignment commits landed locally through `69ea4b5`; Config/LocalModel/Slop.ps1 WIP, Provider plan wiring, Onboarding, runtime binaries, and installer remain deferred.
+- Open release blockers: publish/sync branch, model/runtime redistribution notice, clean-clone LFS verification, release artifact/CI, and one live smoke.
 
 ## Executive summary
 
@@ -19,10 +27,10 @@ The right move is **not** to merge them blindly. Treat **public Sloppy as the re
 | Tier 1 bundle | Bundled llama.cpp b12676 win-cuda-13.5-x64 + Gemma 4 E2B QAT Q4_0 GGUF/mmproj tracked via Git LFS; model files ~4.04 GB total in `runtime/models`. | `.gitattributes`, `git lfs ls-files --size`, `runtime/models/*`, `README.md`, `docs/architecture.md` | High |
 | Desired-state groundwork exists | Bundling/first-run plan already defines Tier 1 ready-to-go, Tier 2 deliberate opt-in, user-driven flight tests, detect/diff/provision/verify mindset. | `docs/bundling-and-first-run-plan.md` | High |
 | Process control | `tools/slop-control.ps1` resolves password from env/service config, preserves active user OpenCode config and installs minimal fallback only when empty, checks `/api/info` auth, starts/stops Sloppy. | `tools/slop-control.ps1` | High |
-| Docs/PR hygiene | Docs-only PR #1 is open/mergeable/clean on `docs/refresh-sloppy-20261125`; pushed after ruleset fix. MP4 demo removed and GIF kept in local feature commit `f0078ea` (local, not pushed). | `gh pr view 1 --repo shahriarhaqueabir/Sloppy ...`, local git log/status | High |
-| Verification | Prior known full Pester aggregate: 543/543 before recent uncommitted Gemma/audio WIP (historical). During this session, dirty worktree Pester run returned **543/543 passed, 0 failed, 0 skipped**. Live smoke not run. | Session test run; no `tools/verify-motion.ps1` live run in this pass | High for Pester, gap for live smoke |
-| Release blockers | LICENSE still `Copyright (c) 2026 shahr` (decision needed). `docs/superpowers/**` tracked despite ignore pattern; internal plans/review docs present. No installer/release artifact. History PII/sanitization decisions remain. | `LICENSE`, `git ls-files docs/superpowers`, `.gitignore`, docs contents | High |
-| Snapshot risk | Dirty feature branch contains unrelated WIP and mixed concerns; clean release/snapshot must be built from an explicit manifest, not by copying the worktree blindly. | `git status`, branch divergence, WIP files | High |
+| Docs/PR hygiene | Docs-only PR #1 merged as `4237cae`; the release-sync branch is local-only and unpublished. MP4 demo removed and GIF kept. | `git log`, `git ls-remote --heads origin main` | High |
+| Verification | Canonical verify after the explicit-path commits: **543/543 passed, 0 failed**, exit 0; tour guard 38/38. Live smoke not run. | `verify.ps1`, `tests/slop-tour-check.ps1`; no live app | High for headless checks, gap for live smoke |
+| Release blockers | LICENSE attribution resolved as `shahriar`; `docs/superpowers/**` untracked from public index. Still open: no installer/release artifact, unpublished branch, model/runtime redistribution notice, clean-clone LFS check, history PII/sanitization decision. | `LICENSE`, `git ls-files docs/superpowers`, `.gitignore`, `docs/release-readiness.md` | High |
+| Snapshot risk | Work was split into explicit-path commits and the branch was clean at audit time; it is still ahead of `origin/main` and must be published/synced before a release snapshot is trusted. | `git status`, `git rev-list --left-right --count origin/main...HEAD` | High |
 
 ## Grounded findings - PSloppy (alignment target)
 
@@ -31,23 +39,23 @@ The right move is **not** to merge them blindly. Treat **public Sloppy as the re
 | Repo state | Private repo, dirty `main`, ahead/behind origin/main; has untracked `security-scan-results.json` (risky, do not package/commit). | `git status --short`, `git branch -vv`, file listing | High |
 | Identity | Similar Sloppy face/bridge app, but README/branding still PSloppy-oriented and less release-polished for public consumption. | `README.md` | High |
 | License/release metadata | No LICENSE file detected by recon. No LFS runtime/model bundle, no `.gitattributes` for GGUF/runtime, no `docs/bundling-and-first-run-plan.md`, no `docs/SHOWCASE.md`. | recon, file checks | High |
-| Feature delta vs public | Public has extra modules absent in PSloppy: `Slop.Adapter.OpenAi.ps1`, `Slop.Adapter.OpenCode.ps1`, `Slop.Disclosure.ps1`, `Slop.LocalModel.ps1`, `Slop.Onboarding.ps1`, `Slop.OpenCodeCompat.ps1`, `Slop.OpenCodeProfile.ps1`, `Slop.Provider.ps1`, `Slop.Route.ps1`, `Slop.Surfaces.ps1` and matching tests; plus bundling/showcase/product-v1 docs. | file diff by path | High |
+| Feature delta vs public | Most pure contract/manifest modules have since been ported to PSloppy; Onboarding and full runtime/model artifacts remain absent. | file diff by path, PSloppy `git ls-files src/Slop.*` | High |
 | Private/dev artifacts | PSloppy contains `.memory/*`, `.opencode/opencode.jsonc.muted`, `.worktrees/`, `private/`, `notesfront*`, untracked security scan artifact - all inappropriate for public snapshot. | file listing, `.gitignore` | High |
 | Control script parity | Both have `tools/slop-control.ps1` and `tests/slop-control-check.ps1`, but implementations differ (public has richer fallback-config/auth/sync behavior; PSloppy older/simpler). Needs deliberate diff before porting. | `Select-String`/file presence | Medium-High |
-| Docs/superpowers | PSloppy tracks fewer superpowers docs (18) than public (25) and lacks public product-v1/showcase/bundling artifacts. Both repos currently have `docs/superpowers/**` ignored in `.gitignore` while also tracked in git - policy decision required. | `git ls-files docs/superpowers`, `.gitignore` | High |
+| Docs/superpowers | Public Sloppy has untracked the 25 internal `docs/superpowers/**` files while leaving them on disk; PSloppy tracks fewer. Internal plans/reports stay out of the public release snapshot. | `git ls-files docs/superpowers`, `.gitignore` | High |
 
 ## Public Sloppy vs PSloppy - alignment matrix
 
 | Topic | Public Sloppy | PSloppy | Recommendation |
 |---|---|---|---|
 | Release role | Public showcase/release candidate | Private/dev lineage | Keep roles explicit; do not treat PSloppy as release source of truth. |
-| License | Present but needs attribution decision (`shahr` vs `shahriar`) | Missing | Decide public identity; add LICENSE to PSloppy only if/when intended for release. |
+| License | MIT, attribution resolved as `shahriar` | Missing | Add LICENSE to PSloppy only if/when intended for release. |
 | Tier 1 bundle | Runtime/models via LFS, bundling plan | No bundled runtime/model LFS evidence | Port only deliberate, licensed, size-aware packaging strategy. |
-| Provider/model surface | Has local model/provider/route/adapters/disclosure/onboarding/surfaces | Missing these modules | Port by capability slices with tests; avoid blind copy. |
+| Provider/model surface | Has local model/provider/route/adapters/disclosure/onboarding/surfaces | Contract/manifest slices ported; Onboarding and plan-level wiring deferred | Port by capability slices with tests; avoid blind copy. |
 | OpenCode config policy | Preserve active user config; minimal fallback only when empty | Similar intent but implementation older | Align on public Sloppy behavior after diffing tests/contracts. |
-| Docs for release | README, SHOWCASE, architecture, bundling plan, verification report | README/architecture/decisions; no bundling/showcase | Promote selected docs into shared template; keep internal docs out of user snapshot. |
-| Internal/sensitive artifacts | `docs/superpowers/**` tracked; some internal review docs | `.memory`, `.worktrees`, `private`, security-scan-results.json, notesfront | Define strict snapshot exclude manifest per repo. |
-| Verification | 543/543 Pester in dirty worktree; live smoke pending | Pester exists but not run in this pass | Before any port, run equivalent verification in target repo and record evidence. |
+| Docs for release | README, SHOWCASE, architecture, bundling plan, release readiness | README/architecture/decisions; no bundling/showcase | Keep internal verification reports out of user snapshot; promote selected docs into shared template. |
+| Internal/sensitive artifacts | `docs/superpowers/**` untracked; some internal review docs still tracked | `.memory`, `.worktrees`, `private`, security-scan-results.json, notesfront | Define strict snapshot exclude manifest per repo. |
+| Verification | 543/543 Pester, 38/38 tour; live smoke pending | PSloppy port slices 57/57; canonical verify 1016 passes | Before any port, run equivalent verification in target repo and record evidence. |
 
 ## Recommended alignment plan (PSloppy <-> public Sloppy)
 
@@ -84,19 +92,19 @@ Port order suggestion (each slice = diff + tests + verify + doc):
 - Run secret/PII scan on candidate snapshot (not just git diff).
 - Confirm no user-config overwrite, no silent destructive actions, no orphan processes.
 
-## Public Sloppy - recommended next work (paused, planning only)
+## Public Sloppy - work status (2026-11-25)
 
-> You asked to pause Sloppy work; items below are queued, not executed.
+> The items below were queued during recon. Completed items are marked; remaining items are still open.
 
-1. **Merge PR #1** after review, then sync `feat/gemma4-e2b-tier1` with updated `origin/main` and reconcile README/tour/superpowers conflicts carefully.
-2. **Split dirty work** into explicit-path commits: Gemma/audio/tour, Face/OpenCode WIP, `.gitignore`, bundling/release docs, docs-only cleanup. No mixed commit.
-3. **Re-run verification** on clean split state: Pester aggregate, `tools/verify-geometry.ps1`, and live `tools/verify-motion.ps1` only when claiming UI behavior.
-4. **Release decisions**: LICENSE attribution, `docs/superpowers/**` publish policy, LFS/release artifact strategy, model/runtime redistribution terms, history-sanitization acceptance.
-5. **Build clean snapshot manifest**: source snapshot vs user release; generate from allowlist, never from raw worktree copy.
+1. [x] **Merged PR #1** as `4237cae` and synced `feat/gemma4-e2b-tier1` with `origin/main`; follow-up commits remain local-only.
+2. [x] **Split dirty work** into explicit-path commits: Gemma/audio/tour, Face/OpenCode WIP, `.gitignore`, bundling/release docs, docs-only cleanup. No mixed commit.
+3. [x] **Re-ran headless verification** on the clean split state: Pester 543/543, tour 38/38. Live `tools/verify-motion.ps1` is still pending.
+4. [ ] **Finish release decisions**: LICENSE attribution and `docs/superpowers/**` policy are resolved; LFS/release artifact strategy, model/runtime redistribution terms, and history-sanitization acceptance remain open.
+5. [ ] **Build clean snapshot manifest**: source snapshot vs user release; generate from allowlist, never from raw worktree copy.
 
 ## "Rest of work as recommended" - non-Sloppy repos (safe status/actions)
 
-I did **not** merge PRs automatically because merges are remote-visible actions and several are `UNSTABLE`/have repo policy implications. Current PR status:
+I did **not** merge PRs automatically because merges are remote-visible actions and several are `UNSTABLE`/have repo policy implications. The table below is the 2026-11-25 recon snapshot; re-check before acting on any PR other than Sloppy #1, which was merged later in this stream.
 
 | Repo | PR | State | Mergeable | Merge state | Recommendation |
 |---|---:|---|---|---|---|
@@ -105,7 +113,7 @@ I did **not** merge PRs automatically because merges are remote-visible actions 
 | JournalFriends | #3 | OPEN | MERGEABLE | UNSTABLE | Review checks first (Dependabot/security signal appeared earlier) |
 | Klarecht | #47 | OPEN | MERGEABLE | UNSTABLE | Review checks first |
 | PSloppy | #1 | OPEN | MERGEABLE | CLEAN | Paused per "pause Sloppy" (PSloppy alignment-related) - merge only when you explicitly include it |
-| Sloppy | #1 | OPEN | MERGEABLE | CLEAN | Paused - merge during Sloppy sync/split pass |
+| Sloppy | #1 | MERGED (`4237cae`) | n/a | n/a | Merged during Sloppy sync/split pass; follow-up commits remain local-only |
 
 ## Deliverables created in this pass
 
