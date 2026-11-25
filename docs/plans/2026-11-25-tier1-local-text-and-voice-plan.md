@@ -486,7 +486,7 @@ git commit -m "feat(audio): headless local Whisper transcription module"
 git diff --check
 ```
 
-Expected: audio suite `8/8`; canonical verify stays green with 8 new tests.
+Expected: audio suite `7/7`; canonical verify stays green with 7 new tests.
 
 ---
 
