@@ -106,8 +106,8 @@ are per-session config, so local stays the default).
 Slop (WPF, pwsh -STA)
   pea + bubble + input + signals
         │  route decision
-        ├─ local (Tier 1) ── llama.cpp b12676 ── Gemma 4 E2B QAT Q4_0 (GGUF supplied separately)
-        │   localhost:18080, model + mmproj, ctx 8192/16384/32768
+        ├─ local (Tier 1) ── llama.cpp b12676 ── Qwen3.5-2B Q4_K_M (LFS-tracked GGUF)
+        │   localhost:18080, model + optional mmproj, ctx 8192/16384/32768
         │
         ▼
 Slop.Lifecycle.ps1  ── phases, timestamps, generation guard, SSE parsing, errors
@@ -120,7 +120,7 @@ opencode serve --port 28894 (Basic auth; password from ~/.config/opencode/servic
   sessions · agents · tools · permissions · MCP · websearch · events
 ```
 
-Tier 1 runs locally through `runtime/llama-b12676-bin-win-cuda-13.5-x64/llama-server.exe` and `runtime/models/gemma-4-E2B-it-mmproj.gguf`, both tracked via Git LFS. The 3.3 GB `runtime/models/gemma-4-E2B_q4_0-it.gguf` is not tracked because GitHub's LFS limit is 2 GB per file; supply it yourself. HF download cache under `runtime/models/.cache/` is ignored. Text requests use the existing llama.cpp adapter. Opt-in voice input records a short WAV with WinMM, transcribes it locally with bundled Whisper small through `src/Slop.Audio.ps1` once the CLI and model are supplied, and sends the transcript through the same text path. LFS rules for bundled Whisper small artifacts are present, but this checkout does not include `whisper-cli.exe` or `ggml-small.bin`; supply them under `runtime/whisper/` (live mic smoke deferred). No audio leaves the machine, and there is no TTS or VAD. `mmproj` and `localVisionReady` stay unused readiness hooks; Tier 1 makes no image claim.
+Tier 1 runs locally through `runtime/llama-b12676-bin-win-cuda-13.5-x64/llama-server.exe` and the LFS-tracked `runtime/models/Qwen3.5-2B-Q4_K_M.gguf` (1.3 GB, Apache-2.0); `--jinja` uses the GGUF's embedded chat template. An mmproj is optional and unused by default. HF download cache under `runtime/models/.cache/` is ignored. Text requests use the existing llama.cpp adapter. Opt-in voice input records a short WAV with WinMM, transcribes it locally with bundled Whisper small through `src/Slop.Audio.ps1` once the CLI and model are supplied, and sends the transcript through the same text path. LFS rules for bundled Whisper small artifacts are present, but this checkout does not include `whisper-cli.exe` or `ggml-small.bin`; supply them under `runtime/whisper/` (live mic smoke deferred). No audio leaves the machine, and there is no TTS or VAD. `mmproj` and `localVisionReady` stay unused readiness hooks; Tier 1 makes no image claim.
 
 The bridge creates **one OpenCode session per Slop conversation** and sends only new
 user text on each turn. Slop must stop resending its 12-message history — OpenCode

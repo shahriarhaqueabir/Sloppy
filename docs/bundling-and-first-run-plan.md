@@ -15,8 +15,8 @@ The installer/first-run flow must check prerequisites, explain what is needed, i
 | Component | Approx. size | Needed at runtime? | Packaging decision |
 |---|---:|---|---|
 | `.git/` + `.git/lfs` | ~4.36 GB | No | **Never ship** in installer. |
-| `runtime/models/gemma-4-E2B_q4_0-it.gguf` | ~3.19 GB | Tier 1 local text | **Download on demand** (default Tier 1 component). |
-| `runtime/models/gemma-4-E2B-it-mmproj.gguf` | ~0.94 GB | Future multimodal image/audio | **Optional download, feature-gated**; do not bundle until multimodal is live-verified. |
+| `runtime/models/Qwen3.5-2B-Q4_K_M.gguf` | ~1.3 GB | Tier 1 local text | LFS-tracked default component. |
+| `runtime/models/Qwen3.5-2B-mmproj.gguf` | — | Future multimodal image/audio | Optional, not bundled; no download until multimodal is live-verified. |
 | `runtime/llama-b12676-bin-win-cuda-13.5-x64/` | ~0.27 GB | Tier 1 local runtime | **Download selected backend only**; trim unused CLI tools. |
 | `assets/Sloppy.gif` | small | Optional | Showcase/demo asset; keep out of installer payload unless intentionally needed. |
 | `src/`, required `.opencode` fallback, runtime assets | <1 MB | Yes | **Bundle**. |
@@ -59,7 +59,7 @@ Tier 1 is the shipped starting point. The user should never be dropped into an e
 - First launch opens with Sloppy present, calm, and local.
 - Sloppy greets the user and gives a short intro:
   - **Who I am:** your desktop companion for AI work.
-  - **What I can do now (Tier 1):** local chat with bundled Gemma, visible state/motion, local-first privacy, basic controls.
+  - **What I can do now (Tier 1):** local chat with bundled Qwen, visible state/motion, local-first privacy, basic controls.
   - **What I can’t do yet:** no remote provider/OpenCode agent capabilities until Tier 2 is set up; no multimodal claims unless verified.
   - **How I stay safe:** clear boundaries, visible status, fail-closed checks.
 
@@ -68,7 +68,7 @@ Tier 1 is the shipped starting point. The user should never be dropped into an e
 - Suggested checks:
   - **App shell:** UI/assets/config writable.
   - **Runtime:** selected llama backend present, compatible, launches.
-  - **Model:** Gemma Q4 present, checksum ok, loads.
+  - **Model:** Qwen GGUF present, checksum ok, loads.
   - **Local brain:** health probe passes; tiny test prompt returns.
   - **Signals/UI:** color/motion/status indicators respond correctly.
   - **Safety baseline:** local-only mode, disclosure/permissions/status visible.
@@ -153,8 +153,8 @@ The installer/first-run must **check, report, and act** on required items. It sh
 | `llama-runtime-cpu-x64` | Auto-select fallback | small/medium | Trim to server-required files only. |
 | `llama-runtime-cuda-win-x64` | Auto-select when compatible | medium | Trim to server-required files; verify CUDA/driver compatibility. |
 | `llama-runtime-vulkan-win-x64` | Optional/future | medium | Consider as broader GPU fallback if validated. |
-| `model-gemma4-e2b-q4` | Tier 1 default | ~3.19 GB | Resumable download, SHA256, license/terms notice, atomic install. |
-| `model-gemma4-e2b-mmproj` | Optional, feature-gated | ~0.94 GB | Only when multimodal is wired, verified, and user opts in. |
+| `model-qwen3-5-2b-q4km` | Tier 1 default | ~1.3 GB | LFS-tracked; verify checksum and license notice. |
+| `model-qwen3-5-2b-mmproj` | Optional, feature-gated | — | Only when multimodal is wired, verified, and user opts in. |
 | `opencode` | Tier 2/Both | varies | Detect existing first; install supported version; verify service/profile. |
 | `vcpp-redist` | As needed | small | Trusted Microsoft redistributable. |
 
@@ -175,7 +175,7 @@ The installer/first-run must **check, report, and act** on required items. It sh
   runtime\
     llama\<backend>\  # selected llama runtime
   models\
-    gemma4-e2b\       # model + optional mmproj
+    qwen3-5-2b\       # model; optional mmproj not present by default
   config\             # user config
   state\              # component manifest, install state, logs
   cache\              # downloads/temp
@@ -247,4 +247,4 @@ Sloppy should not “dump” the user into the app. Readiness is a guided, user-
 3. Build Tier 1 first-run onboarding state machine: greeting, intro, systems-check, handoff.
 4. Add a “Test all systems for go” UI flow with per-check evidence and repair actions.
 5. Build Tier 2 upgrade flow as a separate staged wizard: detect, install/configure, verify, capability intro, handoff.
-6. Trim llama runtime to minimal server-required files per backend; keep mmproj feature-gated until verified end-to-end.
+6. Trim llama runtime to minimal server-required files per backend; keep Qwen3.5-2B mmproj feature-gated until verified end-to-end.

@@ -13,3 +13,10 @@
 - SHA-1: `55356645c2b361a969dfd0ef2c5a50d530afd8d5`
 
 The checksum is verified by `tools/slop-preflight.ps1`. Release-time license review is a separate gate; this file records provenance, it does not authorize a release.
+
+## Qwen3.5-2B Q4_K_M
+
+- Base model: https://huggingface.co/Qwen/Qwen3.5-2B
+- GGUF quant: https://huggingface.co/axteam/Qwen3.5-2B-GGUF (`Qwen3.5-2B-Q4_K_M.gguf`)
+- License: Apache-2.0 (base model); the GGUF is a derivative distributed under the same license
+- Used for: Tier 1 local text replies through bundled `llama.cpp` b12676 with `--jinja`

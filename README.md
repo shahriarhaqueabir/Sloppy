@@ -10,7 +10,7 @@
 
 Sloppy sits on your desktop as an animated pea. It changes colour, shape and motion with what your agent is actually doing: thinking, working, waiting on a tool, stalled, asking permission, or finishing a reply. When OpenCode asks for approval, the decision appears in the chat as **Allow / Allow once / Reject** instead of hiding in a log.
 
-It is local-first and quiet. There is no cloud account and no telemetry. Sloppy's Tier 1 path runs **Gemma 4 E2B QAT Q4_0** on `llama.cpp` b12676 with runtime artifacts tracked via Git LFS; the 3.3 GB GGUF is supplied separately because it exceeds GitHub LFS's 2 GB per-file limit. You can also connect your own [OpenCode](https://opencode.ai/) provider; Sloppy is the face and the permission surface, talking to a local service over loopback HTTP.
+It is local-first and quiet. There is no cloud account and no telemetry. Sloppy's Tier 1 path runs **Qwen3.5-2B Q4_K_M** on `llama.cpp` b12676 with the GGUF and runtime tracked via Git LFS; the model is 1.3 GB, under GitHub's 2 GB per-file limit. You can also connect your own [OpenCode](https://opencode.ai/) provider; Sloppy is the face and the permission surface, talking to a local service over loopback HTTP.
 
 ## Why you might want it
 
@@ -25,7 +25,7 @@ It is local-first and quiet. There is no cloud account and no telemetry. Sloppy'
 flowchart LR
   User[You] --> UI[Sloppy WPF companion]
   UI --> Route[Route planner]
-  Route -->|Tier 1 local| Llama[llama.cpp + Gemma GGUF]
+  Route -->|Tier 1 local| Llama[llama.cpp + Qwen GGUF]
   Route -->|Tier 2 agentic| OC[OpenCode + tools/permissions]
   UI --> State[Streaming/thinking/success/error states]
 `
@@ -63,7 +63,7 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 | Layer | Technology | Notes |
 |---|---|---|
 | UI | PowerShell 7 + WPF/XAML | Native Windows companion |
-| Tier 1 | llama.cpp + Gemma 4 E2B GGUF | Local/default path (GGUF supplied separately) |
+| Tier 1 | llama.cpp + Qwen3.5-2B Q4_K_M GGUF | Local/default path (LFS-tracked GGUF) |
 | Tier 2 | OpenCode service/SSE | Agentic tools, permissions, audit |
 | Tests | Pester 6 | Headless contracts + shell checks |
 
@@ -87,11 +87,11 @@ Requirements:
 - Windows
 - PowerShell 7.6 or later, in STA mode
 - Git LFS (to fetch bundled runtime artifacts in a source checkout)
-- For Tier 1: supply `runtime/models/gemma-4-E2B_q4_0-it.gguf` yourself; it is too large for GitHub LFS
+- For Tier 1: `runtime/models/Qwen3.5-2B-Q4_K_M.gguf` is tracked via Git LFS (1.3 GB) and fetched on checkout; no manual model supply step
 - Optional for voice: supply `whisper-cli.exe` and `ggml-small.bin` under `runtime/whisper/` yourself; LFS rules are configured, but these artifacts are not bundled in this checkout (live mic/Whisper smoke deferred)
 - Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
-Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The Gemma 4 E2B brain answers text locally once you supply the GGUF under `runtime/models/`, and opt-in push-to-talk audio is transcribed locally by Whisper small (CLI and model supplied by you) before being sent through the same text path. Nothing is uploaded for Tier 1. Image capture and `mmproj` remain unused readiness hooks; there are no spoken replies.
+Sloppy prefers whatever OpenCode config you already have. If there is none, it installs a minimal zero-trust config; it never overwrites an active one. The Qwen3.5-2B brain answers text locally from the LFS-tracked GGUF under `runtime/models/`, and opt-in push-to-talk audio is transcribed locally by Whisper small (CLI and model supplied by you) before being sent through the same text path. Nothing is uploaded for Tier 1. Image capture and `mmproj` remain unused readiness hooks; there are no spoken replies.
 
 ## 📋 Playbook (short)
 
