@@ -24,7 +24,6 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'Slop.Surfaces.ps1')
 # Disclosure acceptance is per app lifetime; never persisted.
 $script:SlopDisclosureAccepted = $false
-$script:PendingAttachments = [System.Collections.Generic.List[hashtable]]::new()
 $script:VoiceInstallRoot = Get-SlopVoiceInstallRoot
 
 $xaml = @'
@@ -245,7 +244,6 @@ $xaml = @'
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
           </Grid.ColumnDefinitions>
           <Grid Grid.Column="0">
             <TextBox x:Name="InputBox" Height="34" FontSize="12"
@@ -260,13 +258,10 @@ $xaml = @'
           <Button x:Name="MicBtn" Grid.Column="1" Content="🎤" Style="{StaticResource SlopButton}"
                   Width="28" Height="34" Margin="6,0,0,0" Background="Transparent" Foreground="#AAA"
                   Cursor="Hand" FontSize="13" ToolTip="Record a short voice note (click to start/stop)"/>
-          <Button x:Name="AttachBtn" Grid.Column="2" Content="+" Style="{StaticResource SlopButton}"
-                  Width="28" Height="34" Margin="4,0,0,0" Background="Transparent" Foreground="#AAA"
-                  Cursor="Hand" FontSize="13" ToolTip="Attach audio or image file"/>
-          <Button x:Name="StopBtn" Grid.Column="3" Content="■" Style="{StaticResource SlopButton}"
+          <Button x:Name="StopBtn" Grid.Column="2" Content="■" Style="{StaticResource SlopButton}"
                   Width="40" Height="34" Margin="6,0,0,0" Background="#7F1D1D" Foreground="White"
                   Cursor="Hand" FontSize="11" Visibility="Collapsed"/>
-          <Button x:Name="SendBtn" Grid.Column="4" Content="Send" Style="{StaticResource SlopButton}"
+          <Button x:Name="SendBtn" Grid.Column="3" Content="Send" Style="{StaticResource SlopButton}"
                   Width="64" Height="34" Margin="6,0,0,0" Background="#3B82F6" Foreground="White"
                   Cursor="Hand" FontWeight="SemiBold" FontSize="12"/>
         </Grid>
@@ -366,6 +361,7 @@ $PrivacySessionCopy = $window.FindName('PrivacySessionCopy')
 $PrivacyLocalDataCopy = $window.FindName('PrivacyLocalDataCopy')
 $InputBox = $window.FindName('InputBox')
 $InputPlaceholder = $window.FindName('InputPlaceholder')
+$MicBtn = $window.FindName('MicBtn')
 $SendBtn = $window.FindName('SendBtn')
 $StopBtn = $window.FindName('StopBtn')
 $PeaCanvas = $window.FindName('PeaCanvas')
@@ -1674,48 +1670,12 @@ function Start-Stream {
     $timer.Start()
 }
 
-function Add-SlopPendingAttachment {
-    param([Parameter(Mandatory)][hashtable]$Attachment)
-    $script:PendingAttachments.Add($Attachment) | Out-Null
-    $count = $script:PendingAttachments.Count
-    $names = @($script:PendingAttachments | ForEach-Object { [string]$_.name }) -join ', '
-    $InputPlaceholder.Text = "Attached ($count): $names"
-    $InputPlaceholder.Visibility = 'Visible'
-}
-
-function Clear-SlopPendingAttachments {
-    $script:PendingAttachments.Clear()
-    $InputPlaceholder.Text = 'Ask something.'
-    $InputPlaceholder.Visibility = if ([string]::IsNullOrEmpty($InputBox.Text)) { 'Visible' } else { 'Collapsed' }
-}
-
 $sendAction = {
     $text = $InputBox.Text.Trim()
-    $atts = @($script:PendingAttachments.ToArray())
-    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -eq 0) { return }
+    if ([string]::IsNullOrWhiteSpace($text)) { return }
     $InputBox.Text = ''
-    Clear-SlopPendingAttachments
-    if ([string]::IsNullOrWhiteSpace($text) -and $atts.Count -gt 0) { $text = 'Please analyze the attached file(s).' }
-    Start-Stream -UserText $text -Attachments $atts
+    Start-Stream -UserText $text
 }
-
-$AttachBtn.Add_Click({
-    try {
-        Add-Type -AssemblyName System.Windows.Forms -ErrorAction SilentlyContinue
-        $dlg = [System.Windows.Forms.OpenFileDialog]::new()
-        $dlg.Title = 'Attach audio or image'
-        $dlg.Filter = 'Media files|*.wav;*.mp3;*.m4a;*.ogg;*.flac;*.png;*.jpg;*.jpeg;*.webp;*.gif|Audio|*.wav;*.mp3;*.m4a;*.ogg;*.flac|Images|*.png;*.jpg;*.jpeg;*.webp;*.gif|All files|*.*'
-        $dlg.Multiselect = $true
-        if ($dlg.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { return }
-        foreach ($f in @($dlg.FileNames)) {
-            $att = New-SlopAttachmentFromFile -Path $f
-            Add-SlopPendingAttachment -Attachment $att
-        }
-    }
-    catch {
-        Add-Bubble -Text "[error: attachment failed: $($_.Exception.Message)]" -IsUser $false
-    }
-})
 
 $script:MicRecording = $false
 $script:MicRecorderPath = $null
@@ -1808,7 +1768,7 @@ $script:VoiceTimer.Add_Tick({
     while ($q.TryDequeue([ref]$tok)) {
         if ($tok.StartsWith('__VOICE__')) {
             # Start-Stream already adds the user bubble; do not add it twice.
-            Start-Stream -UserText $tok.Substring(9) -Attachments @()
+            Start-Stream -UserText $tok.Substring(9)
         }
         elseif ($tok.StartsWith('__VOICEERR__')) {
             Add-Bubble -Text "[error: $($tok.Substring(12))]" -IsUser $false

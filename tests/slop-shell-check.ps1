@@ -168,7 +168,7 @@ Assert-True ($src -match 'Get-SlopVoiceReadinessText -Config \$cfg') 'Settings s
 Assert-True ($src -match 'function Start-SlopVoiceTranscription') 'voice transcription has a named worker starter'
 Assert-True ($src -match 'Invoke-SlopWhisperTranscription -Paths \$Paths -WavPath \$Wav') 'voice worker invokes the local Whisper wrapper'
 Assert-True ($src -match 'Start-ThreadJob -ScriptBlock \{[\s\S]{0,900}__VOICE__') 'voice job enqueues transcript markers'
-Assert-True ($src -match 'Start-Stream -UserText \$tok\.Substring\(9\) -Attachments @\(\)') 'transcript uses the existing text send path'
+Assert-True ($src -match 'Start-Stream -UserText \$tok\.Substring\(9\)') 'transcript uses the existing text send path'
 Assert-True ($src -notmatch '\$MicBtn[\s\S]{0,2400}New-SlopAttachmentFromFile -Path \$script:MicRecorderPath') 'Mic stop no longer attaches the WAV'
 Assert-True ($src -match '\$script:VoiceQueue = \[System\.Collections\.Concurrent\.ConcurrentQueue\[string\]\]::new\(\)') 'voice uses a dedicated dispatcher queue'
 Assert-True ($src -match '\$script:MicCapTimer\.Interval = \[TimeSpan\]::FromSeconds\(\$script:VoiceMaxSeconds\)') 'hard recording cap is configured from voiceMaxSeconds'
