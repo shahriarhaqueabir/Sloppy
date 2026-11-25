@@ -22,6 +22,9 @@ if ($m.Success) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3\.5-2B Q4_K_M') 'route badge discloses the bundled model from first frame'
+    Assert-True ($src -notmatch 'Set-SlopRouteBadge\s+-Kind\s') 'config badge updater does not call the removed Kind signature'
+    Assert-True ($src -match 'Set-SlopRouteBadge -StreamPlan \$badgePlan') 'config badge updater passes a stream plan'
+    Assert-True ($src -match 'Badge=\(Get-SlopRouteBadge -Kind \$kind -Provider \$provider -Model \$effective\)') 'config badge plan resolves the honest route label'
     Assert-True ($src -match '\$MicBtn = \$window\.FindName\(''MicBtn''\)') 'mic button is bound from XAML before handlers are registered'
     Assert-True ($src -notmatch 'AttachBtn') 'text-only composer has no attach affordance'
     # BrushConverter returns a Brush; SolidColorBrush::new needs a Color. A missed
