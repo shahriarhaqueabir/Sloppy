@@ -116,7 +116,7 @@ Design intent only: a `slopsettings` PowerShell command to tweak Slop configs an
 
 - Existing headless suites must stay green: `pwsh -NoProfile -File tests/slop-opencode-check.ps1` and the motion/lifecycle suites under `tests/`.
 - `tools/verify-motion.ps1` exact-RGB samples must still pass unchanged — the compact pea and four shapes are untouched.
-- Full gate: `pwsh -NoProfile -File C:\Users\example\.agents\scripts\verify.ps1`.
+- Full gate: `pwsh -NoProfile -File <agent-home>/scripts/verify.ps1`.
 - Live verification against the real app: capture the compact state, the open transition, a streamed response, and the close transition; confirm text stays stable while the body deforms, scrolling works, Escape collapses, and reduced-motion flattens to a fade.
 - Confirm no orphaned `Slop.ps1` process after verification.
 
@@ -134,3 +134,4 @@ Design intent only: a `slopsettings` PowerShell command to tweak Slop configs an
 - Implementing `slopsettings`.
 - Rewriting the exact-RGB verifier.
 - Voice input/output and speaking animations (the guide mentions them conditionally; voice is not part of this slice).
+

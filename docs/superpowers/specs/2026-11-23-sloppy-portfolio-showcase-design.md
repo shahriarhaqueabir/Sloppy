@@ -186,7 +186,7 @@ scrub → local commit → user-confirmed remote → push
 
 Before this work is called complete:
 
-1. `pwsh -NoProfile -File C:\Users\example\.agents\scripts\verify.ps1` — all gates pass.
+1. `pwsh -NoProfile -File <agent-home>/scripts/verify.ps1` — all gates pass.
 2. Tour check — 38/38, all 16 source anchors matching.
 3. Confirm `assets/demo.gif` (or fallback strip) and `assets/hero.png` exist and are
    non-empty, and that `git check-ignore` reports them as trackable.
@@ -209,3 +209,4 @@ No push, PR, deploy, or CI/CD change is part of this work.
 After this spec is reviewed and approved, the next step is the `writing-plans` skill to
 produce a step-by-step implementation plan. No implementation begins before that plan
 is approved.
+

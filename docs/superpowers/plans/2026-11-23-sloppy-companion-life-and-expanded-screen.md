@@ -1152,7 +1152,7 @@ Expected: every line ends in PASSED / PASS with `$LASTEXITCODE` 0.
 - [ ] **Step 2: Run the verify gate**
 
 ```powershell
-pwsh -NoProfile -File C:\Users\example\.agents\scripts\verify.ps1
+pwsh -NoProfile -File <agent-home>/scripts/verify.ps1
 ```
 Expected: `=== VERIFY COMPLETE ===` / `All gates passed.`
 
@@ -1197,3 +1197,4 @@ Skip if nothing changed.
 - `Add-SlopThoughtBubble` is called from the tray toggle (T7) and the timer (T7), both defined after the function in T6.
 - Function names are consistent across tasks: `Get-SlopSenseEnabled`, `Set-SlopSenseEnabled`, `Invoke-SlopSenseScan`, `Get-SlopIdleAction`, `Complete-SlopIdleAction`, `Update-SlopFaceLayer -Pattern`, `Insert-SlopShortcut`.
 - No subagents are used, per the standing user cost constraint.
+
