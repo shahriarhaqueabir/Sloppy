@@ -7,6 +7,15 @@ function Assert-True {
     param([bool]$Condition, [string]$Message)
     $script:SlopChecks.Add([pscustomobject]@{ Name = $Message; Passed = [bool]$Condition })
 }
+function Find-AncestorByName {
+    param([System.Windows.DependencyObject]$Element, [string]$Name)
+    $current = $Element
+    while ($null -ne $current) {
+        if ($current -is [System.Windows.FrameworkElement] -and $current.Name -eq $Name) { return $current }
+        $current = [System.Windows.LogicalTreeHelper]::GetParent($current)
+    }
+    return $null
+}
 
 $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.ps1') -Raw
 $m = [regex]::Match($src, '\$xaml = @''\r?\n(?<xaml>.*?)\r?\n''@', 'Singleline')
@@ -21,6 +30,33 @@ if ($m.Success) {
                         'PrivacyRouteText','PrivacyTermsLink','PrivacyConversationCopy','PrivacySessionCopy','PrivacyLocalDataCopy')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
+    foreach ($name in @(
+        'SettingsStatusText','CustomizeStatusText','BrainStatusText','PrivacyStatusText',
+        'CustomizeNameBox','CustomizeColourCombo','CustomizePersonalityCombo','CustomizePersonaBox','CustomizeSaveButton',
+        'BrainTypeCombo','BrainProviderBox','BrainLocalityCombo','BrainTierCombo','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo','BrainSaveButton'
+    )) {
+        Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
+    }
+    foreach ($id in @('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton')) {
+        $el = $w.FindName($id)
+        Assert-True ($null -ne $el) "deletion button $id exists"
+        if ($el) {
+            Assert-True ($null -ne (Find-AncestorByName $el 'PrivacyPanel')) "$id is owned by Privacy"
+            Assert-True ($null -eq (Find-AncestorByName $el 'SettingsPanel')) "$id is not owned by Settings"
+        }
+    }
+    Assert-True ($src -match 'function Set-SlopDestinationStatus') 'visible per-page status helper exists'
+    Assert-True ($src -match 'Get-SlopDestinationContract -Name \$Name') 'status helper resolves IDs from the contract map'
+    Assert-True ($src -match 'Set-SlopDestinationStatus -Name \$Name -Text') 'opening a destination clears its status'
+    Assert-True ($src -match 'function Update-SlopIdentityFromConfig') 'identity refresh has a reusable helper'
+    Assert-True ($src -match 'Get-SlopEffectiveOpenCodeBaseUrl[\s\S]{0,400}Update-SlopIdentityFromConfig') 'identity refresh is called at startup'
+    Assert-True ($src -match 'function Save-SlopCustomize') 'Customize has a save handler'
+    Assert-True ($src -match 'function Save-SlopBrain') 'Brain has a save handler'
+    Assert-True ($src -match 'Set-SlopConfigIdentity[\s\S]{0,80}\$script:SlopConfigResult\.Config') 'Customize validates through the pure identity helper'
+    Assert-True ($src -match 'Set-SlopConfigBrain[\s\S]{0,80}\$script:SlopConfigResult\.Config') 'Brain validates through the pure brain helper'
+    Assert-True ($src -match 'function Save-SlopSettings[\s\S]{0,2400}Set-SlopDestinationStatus -Name Settings -Text ''Settings saved\.''') 'Settings reports success on its own page'
+    Assert-True ($src -notmatch "Add-SlopThoughtBubble -Text 'Settings saved\.'") 'Settings no longer reports into hidden chat'
+    Assert-True ($src -match 'function Invoke-SlopDeletion[\s\S]{0,900}Set-SlopDestinationStatus -Name Privacy') 'deletion reports on the Privacy page'
     Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3\.5-2B Q4_K_M') 'route badge discloses the bundled model from first frame'
     Assert-True ($src -notmatch 'Set-SlopRouteBadge\s+-Kind\s') 'config badge updater does not call the removed Kind signature'
     Assert-True ($src -match 'Set-SlopRouteBadge -StreamPlan \$badgePlan') 'config badge updater passes a stream plan'
