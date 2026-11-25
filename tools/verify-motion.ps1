@@ -86,13 +86,23 @@ function Get-UiaText($id) {
     } catch { }
     return $el.Current.Name
 }
-
+function Set-UiaCombo($id, $value) {
+    $el = Find-Uia $id
+    if (-not $el) { throw "UIA combo $id not found" }
+    $cond = [System.Windows.Automation.PropertyCondition]::new(
+        [System.Windows.Automation.AutomationElement]::NameProperty, [string]$value)
+    $item = $el.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $cond)
+    if (-not $item) { throw "combo $id has no item named '$value'" }
+    $sp = $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern)
+    $sp.Select()
+}
 # Probe coordinates are in device-independent pixels (XAML layout). Capture the
 # DPI scale once at launch, when the window is still 484x330. Re-deriving it from
 # the live rect after expand (760x540) or maximize skews fixed-margin elements
 # such as the header dot, because those margins do not grow with the window.
 $script:DpiX = 1.0
 $script:DpiY = 1.0
+$script:LastGrabRect = $null
 function Phys($lx,$ly) {
     $r = $script:W.Current.BoundingRectangle
     @([int]($r.X + $lx*$script:DpiX), [int]($r.Y + $ly*$script:DpiY))
@@ -123,7 +133,20 @@ function Paste($text) {
     [VM]::keybd_event([VM]::CTRL,0,[VM]::KEYUP,0)
 }
 function Grab {
+    # A cached UIA peer can report an empty or stale rect while the window
+    # expands. Re-query the top-level window and keep the exact rect used for
+    # this bitmap so Pixel cannot sample against a different geometry.
+    $w = Get-Win $proc.Id
+    if ($w) { $script:W = $w }
     $r = $script:W.Current.BoundingRectangle
+    for ($i=0; $i -lt 20 -and ($r.Width -le 0 -or $r.Height -le 0); $i++) {
+        Start-Sleep -Milliseconds 50
+        $w = Get-Win $proc.Id
+        if ($w) { $script:W = $w }
+        $r = $script:W.Current.BoundingRectangle
+    }
+    if ($r.Width -le 0 -or $r.Height -le 0) { throw "empty window rect $($r.Width)x$($r.Height)" }
+    $script:LastGrabRect = $r
     $b = [System.Drawing.Bitmap]::new([int]$r.Width,[int]$r.Height)
     $g = [System.Drawing.Graphics]::FromImage($b)
     $g.CopyFromScreen([int]$r.X,[int]$r.Y,0,0,$b.Size)
@@ -150,9 +173,17 @@ function Count($b,$lx,$ly,$lw,$lh,$mode) {
     $n
 }
 function Pixel($b,$lx,$ly) {
-    $p = Phys $lx $ly
-    $r = $script:W.Current.BoundingRectangle
-    $b.GetPixel([int]($p[0]-$r.X), [int]($p[1]-$r.Y))
+    # Coordinates are layout pixels inside the bitmap captured by Grab. Use the
+    # stored rect for bounds only; never re-read a possibly stale UIA rect here.
+    $r = $script:LastGrabRect
+    $x = [int]($lx*$script:DpiX)
+    $y = [int]($ly*$script:DpiY)
+    if ($r) {
+        if ($x -lt 0 -or $x -ge [int]$r.Width -or $y -lt 0 -or $y -ge [int]$r.Height) {
+            throw "pixel $lx,$ly outside captured rect $([int]$r.Width)x$([int]$r.Height)"
+        }
+    }
+    $b.GetPixel($x,$y)
 }
 function Classify($p) {
     # The dot fades in during expand; accept the darker end of the blue ramp too.
@@ -376,7 +407,7 @@ if ($badge -notmatch 'Local' -or $badge -notmatch 'Qwen3') {
 }
 $destinations = @('Settings','Customize','Brain','Privacy')
 # Each panel is proven by one unique named view, not by a substring of a label.
-$panelProbes = @{ Settings='AboutText'; Customize='CustomizePersonaText'; Brain='BrainRouteText'; Privacy='PrivacyRouteText' }
+$panelProbes = @{ Settings='AboutText'; Customize='CustomizeNameBox'; Brain='BrainRouteText'; Privacy='PrivacyRouteText' }
 foreach ($n in $destinations) {
     if (-not (Find-UiaButton $n)) { throw "destination button $n missing from the top strip" }
 }
@@ -395,10 +426,24 @@ foreach ($n in $destinations) {
     if ($n -eq 'Settings') {
         # AdvancedStack is an empty panel host and has no UIA peer of its own;
         # its chips are asserted by button name below.
-        foreach ($ctl in @('AutostartButton','DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton')) {
+        foreach ($ctl in @('SettingsSaveButton','SettingsStatusText','AutostartButton','VoiceRepairButton')) {
             if (-not (Find-Uia $ctl)) { throw "settings control $ctl missing" }
         }
+        foreach ($id in @('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton')) {
+            $el = Find-Uia $id
+            if ($el -and -not $el.Current.IsOffscreen) { throw "deletion button $id leaked into Settings" }
+        }
         if (-not (Find-UiaButton 'startslop')) { throw 'advanced developer chips are not under Settings' }
+    }
+    if ($n -eq 'Customize') {
+        foreach ($ctl in @('CustomizeNameBox','CustomizeColourCombo','CustomizePersonalityCombo','CustomizePersonaBox','CustomizeSaveButton','CustomizeStatusText')) {
+            if (-not (Find-Uia $ctl)) { throw "customize control $ctl missing" }
+        }
+    }
+    if ($n -eq 'Brain') {
+        foreach ($ctl in @('BrainTypeCombo','BrainProviderBox','BrainLocalityCombo','BrainTierCombo','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo','BrainSaveButton','BrainStatusText')) {
+            if (-not (Find-Uia $ctl)) { throw "brain control $ctl missing" }
+        }
     }
     if ($n -eq 'Privacy') {
         $routeCopy = Get-UiaText 'PrivacyRouteText'
@@ -406,11 +451,104 @@ foreach ($n in $destinations) {
         if ($routeCopy -notmatch 'Route:') { throw 'Privacy does not show the active data route' }
         $copies = @((Get-UiaText 'PrivacyConversationCopy'), (Get-UiaText 'PrivacySessionCopy'), (Get-UiaText 'PrivacyLocalDataCopy'))
         if (@($copies | Select-Object -Unique).Count -ne 3) { throw 'deletion scopes are not distinct in Privacy' }
+        foreach ($id in @('DeleteConversationButton','DeleteSessionButton','DeleteLocalDataButton','PrivacyStatusText')) {
+            $el = Find-Uia $id
+            if (-not $el -or $el.Current.IsOffscreen) { throw "privacy control $id is missing or hidden" }
+        }
     }
     Invoke-Uia ($n + 'Back')
     Start-Sleep -Milliseconds 250
 }
 if (-not (Find-Uia 'ChatScroll') ) { throw 'Back to chat did not restore the conversation' }
+
+# Editable destinations: prove each save writes the disposable profile and
+# reports success on its own page instead of a hidden chat bubble.
+$cfgPath = Get-SlopConfigPath
+$personaPath = Get-SlopPersonaPath
+
+Invoke-UiaButton 'Settings'
+Start-Sleep -Milliseconds 350
+Set-UiaValue 'SettingsAgentIdBox' 'probe-agent'
+Invoke-Uia 'SettingsSaveButton'
+Start-Sleep -Milliseconds 350
+$settingsStatus = Get-UiaText 'SettingsStatusText'
+"SAVE Settings status=$settingsStatus"
+if ($settingsStatus -notmatch 'Settings saved\.') { throw 'Settings save did not show visible success' }
+$savedCfg = Get-Content -LiteralPath $cfgPath -Raw | ConvertFrom-Json
+if ($savedCfg.agentId -ne 'probe-agent') { throw 'Settings save did not persist agentId' }
+if ((Find-Uia 'AboutText').Current.IsOffscreen) { throw 'Settings closed after save' }
+Invoke-Uia 'SettingsBack'
+Start-Sleep -Milliseconds 250
+
+Invoke-UiaButton 'Customize'
+Start-Sleep -Milliseconds 350
+Set-UiaValue 'CustomizeNameBox' 'Probe Companion'
+Set-UiaCombo 'CustomizeColourCombo' 'plum'
+Set-UiaCombo 'CustomizePersonalityCombo' 'playful'
+Set-UiaValue 'CustomizePersonaBox' 'Live persona probe.'
+Invoke-Uia 'CustomizeSaveButton'
+Start-Sleep -Milliseconds 350
+$customizeStatus = Get-UiaText 'CustomizeStatusText'
+"SAVE Customize status=$customizeStatus"
+if ($customizeStatus -notmatch 'Customize saved\.') { throw 'Customize save did not show visible success' }
+$savedCfg = Get-Content -LiteralPath $cfgPath -Raw | ConvertFrom-Json
+if ($savedCfg.name -ne 'Probe Companion' -or $savedCfg.color -ne 'plum' -or $savedCfg.personality -ne 'playful') {
+    throw 'Customize identity values were not persisted'
+}
+if ((Get-Content -LiteralPath $personaPath -Raw) -notmatch 'Live persona probe\.') {
+    throw 'Customize persona text was not persisted'
+}
+Invoke-Uia 'CustomizeBack'
+Start-Sleep -Milliseconds 250
+
+Invoke-UiaButton 'Brain'
+Start-Sleep -Milliseconds 350
+Set-UiaCombo 'BrainTypeCombo' 'opencode'
+Set-UiaValue 'BrainProviderBox' 'Probe'
+Set-UiaCombo 'BrainLocalityCombo' 'local'
+Set-UiaCombo 'BrainTierCombo' 'free'
+Set-UiaValue 'BrainEndpointBox' ''
+Set-UiaValue 'BrainModelBox' 'probe-model'
+Set-UiaValue 'BrainAgentIdBox' 'probe-agent'
+Set-UiaCombo 'BrainProfileCombo' 'companion'
+Invoke-Uia 'BrainSaveButton'
+Start-Sleep -Milliseconds 350
+$brainStatus = Get-UiaText 'BrainStatusText'
+"SAVE Brain status=$brainStatus"
+if ($brainStatus -notmatch 'Brain saved\.') { throw 'Brain save did not show visible success' }
+$opencodeBadge = Get-UiaText 'RouteBadge'
+"BADGE after brain save=$opencodeBadge"
+if ($opencodeBadge -notmatch 'Local' -or $opencodeBadge -notmatch 'Probe' -or $opencodeBadge -notmatch 'probe-model') {
+    throw 'route badge does not match the saved OpenCode brain'
+}
+Invoke-Uia 'BrainBack'
+Start-Sleep -Milliseconds 250
+
+Invoke-UiaButton 'Privacy'
+Start-Sleep -Milliseconds 350
+$privacyRoute = Get-UiaText 'PrivacyRouteText'
+"PRIVACY after brain save=$privacyRoute"
+if ($privacyRoute -notmatch 'opencode') { throw 'Privacy disclosure does not match the saved OpenCode route' }
+Invoke-Uia 'PrivacyBack'
+Start-Sleep -Milliseconds 250
+
+# Restore the bundled route so the disposable profile is left in its local state.
+Invoke-UiaButton 'Brain'
+Start-Sleep -Milliseconds 350
+Set-UiaCombo 'BrainTypeCombo' 'builtin'
+Set-UiaValue 'BrainModelBox' ''
+Invoke-Uia 'BrainSaveButton'
+Start-Sleep -Milliseconds 350
+$restoreStatus = Get-UiaText 'BrainStatusText'
+"SAVE Brain restore status=$restoreStatus"
+if ($restoreStatus -notmatch 'Brain saved\.') { throw 'Brain restore did not show visible success' }
+$localBadge = Get-UiaText 'RouteBadge'
+"BADGE after brain restore=$localBadge"
+if ($localBadge -notmatch 'Local · bundled · \S') {
+    throw 'bundled route was not restored after live save probe'
+}
+Invoke-Uia 'BrainBack'
+Start-Sleep -Milliseconds 250
 
 # Maximize via the □ control dot. Chat input and Send must remain fully inside
 # the window; a stale fixed clip used to cut them off in this state.

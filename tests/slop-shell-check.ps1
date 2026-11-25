@@ -76,6 +76,14 @@ if ($m.Success) {
     Assert-True ($verifier -match 'function Wait-DotBlue') 'live verifier waits for the header dot fade after expand'
     Assert-True ($verifier -match 'if \(-not \(Wait-DotBlue -TimeoutMs \d+\)\)') 'expanded-dot check uses the fade-aware wait'
     Assert-True ($verifier -match 'for \(\$i=0; \$i -lt 400; \$i\+\+\)[\s\S]{0,200}\$dotColors\[\$c\] = \$true') 'send poll allows slow local brain startup'
+    Assert-True ($verifier -match 'function Set-UiaCombo') 'live verifier can select ComboBox items'
+    Assert-True ($verifier -match 'Set-UiaValue ''SettingsAgentIdBox'' ''probe-agent''') 'live verifier edits Settings'
+    Assert-True ($verifier -match 'Set-UiaCombo ''CustomizeColourCombo'' ''plum''') 'live verifier edits Customize'
+    Assert-True ($verifier -match 'Set-UiaCombo ''BrainTypeCombo'' ''opencode''') 'live verifier edits Brain'
+    Assert-True ($verifier -match 'Get-UiaText ''PrivacyRouteText''') 'live verifier reads the Privacy route after a Brain save'
+    Assert-True ($verifier -match 'function Grab \{[\s\S]{0,900}\$script:LastGrabRect = \$r') 'capture stores one window rect per grab'
+    Assert-True ($verifier -match 'function Pixel\(\$b,\$lx,\$ly\) \{[\s\S]{0,300}\$script:LastGrabRect') 'pixel lookup uses the same rect as its bitmap'
+    Assert-True ($verifier -match 'function Grab \{[\s\S]{0,300}Get-Win \$proc\.Id') 'capture re-queries the top-level window before reading its rect'
     $controls = $w.FindName('ControlDots')
     Assert-True ($controls -is [System.Windows.Controls.Border]) 'control actions are grouped in a separate glass tile'
     if ($controls -is [System.Windows.Controls.Border]) {
