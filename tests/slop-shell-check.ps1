@@ -163,6 +163,17 @@ Assert-True ($src -match '\[int\]::TryParse\(\[string\]\$VoiceMaxSecondsBox\.Tex
 Assert-True ($src -match 'Invoke-SlopPreflight -InstallRoot \$script:VoiceInstallRoot') 'Repair voice runs the report-only preflight'
 Assert-True ($src -match 'Get-SlopVoiceReadinessText -Config \$cfg') 'Settings shows exact Whisper readiness'
 
+Assert-True ($src -match 'function Start-SlopVoiceTranscription') 'voice transcription has a named worker starter'
+Assert-True ($src -match 'Invoke-SlopWhisperTranscription -Paths \$Paths -WavPath \$Wav') 'voice worker invokes the local Whisper wrapper'
+Assert-True ($src -match 'Start-ThreadJob -ScriptBlock \{[\s\S]{0,900}__VOICE__') 'voice job enqueues transcript markers'
+Assert-True ($src -match 'Start-Stream -UserText \$tok\.Substring\(9\) -Attachments @\(\)') 'transcript uses the existing text send path'
+Assert-True ($src -notmatch '\$MicBtn[\s\S]{0,2400}New-SlopAttachmentFromFile -Path \$script:MicRecorderPath') 'Mic stop no longer attaches the WAV'
+Assert-True ($src -match '\$script:VoiceQueue = \[System\.Collections\.Concurrent\.ConcurrentQueue\[string\]\]::new\(\)') 'voice uses a dedicated dispatcher queue'
+Assert-True ($src -match '\$script:MicCapTimer\.Interval = \[TimeSpan\]::FromSeconds\(\$script:VoiceMaxSeconds\)') 'hard recording cap is configured from voiceMaxSeconds'
+Assert-True ($src -match 'Remove-Item -LiteralPath \$Wav -Force -ErrorAction SilentlyContinue') 'temporary WAV is deleted in the worker finally block'
+Assert-True ($src -match '\$SendBtn\.IsEnabled = -not \[bool\]\$script:IsStreaming') 'voice idle state never re-enables Send during a stream'
+Assert-True ($src -match "tok\.StartsWith\('__VOICE__'\)") 'voice success marker is handled before plain text'
+
 Describe 'Slop shell / XAML static checks' {
     foreach ($check in $script:SlopChecks) {
         $name = $check.Name
