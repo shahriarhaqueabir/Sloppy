@@ -22,6 +22,8 @@ if ($m.Success) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3\.5-2B Q4_K_M') 'route badge discloses the bundled model from first frame'
+    Assert-True ($src -match '\$MicBtn = \$window\.FindName\(''MicBtn''\)') 'mic button is bound from XAML before handlers are registered'
+    Assert-True ($src -match '\$AttachBtn = \$window\.FindName\(''AttachBtn''\)') 'attach button is bound from XAML before handlers are registered'
     # BrushConverter returns a Brush; SolidColorBrush::new needs a Color. A missed
     # `.Color` crashed ShowDialog in the live verifier, so guard it statically too.
     Assert-True ($src -match 'IdentityBrush = \[System\.Windows\.Media\.SolidColorBrush\]::new\(\s*\[System\.Windows\.Media\.BrushConverter\]::new\(\)\.ConvertFromString\([\s\S]*?\)\.Color\)') 'identity brush converts to Color before constructing SolidColorBrush'
