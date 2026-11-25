@@ -174,6 +174,22 @@ Assert-True ($src -match 'Remove-Item -LiteralPath \$Wav -Force -ErrorAction Sil
 Assert-True ($src -match '\$SendBtn\.IsEnabled = -not \[bool\]\$script:IsStreaming') 'voice idle state never re-enables Send during a stream'
 Assert-True ($src -match "tok\.StartsWith\('__VOICE__'\)") 'voice success marker is handled before plain text'
 
+$gitattributes = Get-Content (Join-Path $PSScriptRoot '../.gitattributes') -Raw
+$noticesPath = Join-Path $PSScriptRoot '../docs/third-party-notices.md'
+$readme = Get-Content (Join-Path $PSScriptRoot '../README.md') -Raw
+$architecture = Get-Content (Join-Path $PSScriptRoot '../docs/architecture.md') -Raw
+Assert-True ($gitattributes -match 'runtime/whisper/\*\* filter=lfs') 'Whisper runtime is tracked with Git LFS'
+Assert-True ($gitattributes -match '\*\.bin filter=lfs') 'Whisper model .bin files are tracked with Git LFS'
+Assert-True (Test-Path $noticesPath) 'third-party notices file exists'
+if (Test-Path $noticesPath) {
+    $notices = Get-Content $noticesPath -Raw
+    Assert-True ($notices -match 'whisper\.cpp') 'notices name whisper.cpp'
+    Assert-True ($notices -match 'MIT') 'notices record the MIT license'
+    Assert-True ($notices -match '55356645c2b361a969dfd0ef2c5a50d530afd8d5') 'notices pin the small model SHA-1'
+}
+Assert-True ($readme -match 'opt-in push-to-talk audio is transcribed locally') 'README documents shipped local voice transcription'
+Assert-True ($architecture -match 'bundled Whisper small') 'architecture documents local voice input'
+
 Describe 'Slop shell / XAML static checks' {
     foreach ($check in $script:SlopChecks) {
         $name = $check.Name
