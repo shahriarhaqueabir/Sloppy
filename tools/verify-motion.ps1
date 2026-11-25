@@ -254,11 +254,9 @@ $script:StandInModelPath = $null
 $script:StandInMmprojPath = $null
 $installRoot = Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'
 $bundledServer = Join-Path $installRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe'
-$bundledModel = Join-Path $installRoot 'models\gemma-4-E2B_q4_0-it.gguf'
-$bundledMmproj = Join-Path $installRoot 'models\gemma-4-E2B-it-mmproj.gguf'
+$bundledModel = Join-Path $installRoot 'models\Qwen3.5-2B-Q4_K_M.gguf'
 if (-not (Test-Path -LiteralPath $bundledServer) -or
-    -not (Test-Path -LiteralPath $bundledModel) -or
-    -not (Test-Path -LiteralPath $bundledMmproj)) {
+    -not (Test-Path -LiteralPath $bundledModel)) {
     $runtimeBin = $env:SLOP_LIVE_RUNTIME_DIR
     $modelFile = $env:SLOP_LIVE_MODEL_FILE
     $mmprojFile = $env:SLOP_LIVE_MMPROJ_FILE
@@ -266,10 +264,10 @@ if (-not (Test-Path -LiteralPath $bundledServer) -or
         throw 'bundled brain is not installed; set SLOP_LIVE_RUNTIME_DIR to a llama.cpp bin folder'
     }
     if ([string]::IsNullOrWhiteSpace($modelFile) -or -not (Test-Path -LiteralPath $modelFile)) {
-        throw 'bundled brain is not installed; set SLOP_LIVE_MODEL_FILE to a chat-capable GGUF'
+        throw 'bundled brain is not installed; set SLOP_LIVE_MODEL_FILE to a Qwen chat-capable GGUF'
     }
-    if ([string]::IsNullOrWhiteSpace($mmprojFile) -or -not (Test-Path -LiteralPath $mmprojFile)) {
-        throw 'bundled brain is not installed; set SLOP_LIVE_MMPROJ_FILE to a multimodal projector GGUF'
+    if (-not [string]::IsNullOrWhiteSpace($mmprojFile) -and -not (Test-Path -LiteralPath $mmprojFile)) {
+        throw 'SLOP_LIVE_MMPROJ_FILE points to a missing file'
     }
     $runtimeEnv = Join-Path $dir 'runtime-env'
     Remove-Item $runtimeEnv -Recurse -Force -ErrorAction SilentlyContinue
@@ -278,10 +276,12 @@ if (-not (Test-Path -LiteralPath $bundledServer) -or
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $standInRuntime) | Out-Null
     New-Item -ItemType Junction -Path $standInRuntime -Target $runtimeBin -ErrorAction Stop | Out-Null
     New-Item -ItemType Directory -Force -Path (Join-Path $standInRoot 'models') | Out-Null
-    $script:StandInModelPath = Join-Path $standInRoot 'models\gemma-4-E2B_q4_0-it.gguf'
-    $script:StandInMmprojPath = Join-Path $standInRoot 'models\gemma-4-E2B-it-mmproj.gguf'
+    $script:StandInModelPath = Join-Path $standInRoot 'models\Qwen3.5-2B-Q4_K_M.gguf'
     New-Item -ItemType SymbolicLink -Path $script:StandInModelPath -Target $modelFile -ErrorAction Stop | Out-Null
-    New-Item -ItemType SymbolicLink -Path $script:StandInMmprojPath -Target $mmprojFile -ErrorAction Stop | Out-Null
+    if (-not [string]::IsNullOrWhiteSpace($mmprojFile)) {
+        $script:StandInMmprojPath = Join-Path $standInRoot 'models\Qwen3.5-2B-mmproj.gguf'
+        New-Item -ItemType SymbolicLink -Path $script:StandInMmprojPath -Target $mmprojFile -ErrorAction Stop | Out-Null
+    }
     $env:LOCALAPPDATA = $runtimeEnv
     "STANDIN runtime=$runtimeBin model=$modelFile mmproj=$mmprojFile"
 }

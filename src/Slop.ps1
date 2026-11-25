@@ -99,8 +99,8 @@ $xaml = @'
       <TextBlock x:Name="RouteBadge" Grid.Row="0" HorizontalAlignment="Left"
                  VerticalAlignment="Center" Margin="162,0,0,0" MaxWidth="206"
                  TextTrimming="CharacterEllipsis" FontSize="9" Foreground="#B8B8C0"
-                 Text="Local · bundled · Gemma 4 E2B QAT Q4_0"
-                 AutomationProperties.Name="Local · bundled · Gemma 4 E2B QAT Q4_0" IsHitTestVisible="False"/>
+                 Text="Local · bundled · Qwen3.5-2B Q4_K_M"
+                 AutomationProperties.Name="Local · bundled · Qwen3.5-2B Q4_K_M" IsHitTestVisible="False"/>
       <!-- Three faint embedded dots near the wide head shelf; revealed on hover -->
       <Border x:Name="ControlDots" Grid.Row="0" HorizontalAlignment="Right"
               VerticalAlignment="Center" Margin="0,0,14,0" Padding="3"
@@ -1029,7 +1029,7 @@ function Update-SlopRouteBadgeFromConfig {
     $agent = if ($cfg.agent) { $cfg.agent } else { @{} }
     $effective = Resolve-SlopEffectiveModel -Agent $agent -Config $cfg
     if ([string]::IsNullOrWhiteSpace($effective)) {
-        $bundled = if (Get-Command Get-SlopBundledModelName -ErrorAction SilentlyContinue) { Get-SlopBundledModelName } else { 'Gemma 4 E2B QAT Q4_0' }
+        $bundled = if (Get-Command Get-SlopBundledModelName -ErrorAction SilentlyContinue) { Get-SlopBundledModelName } else { 'Qwen3.5-2B Q4_K_M' }
         $effective = if ($kind -eq 'local-bundled') { $bundled } else { 'unknown' }
     }
     $provider = if ($cfg.provider) { [string]$cfg.provider } else { 'bundled' }

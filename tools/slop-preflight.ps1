@@ -40,10 +40,14 @@ function Invoke-SlopPreflight {
     }
 
     $modelPaths = Get-SlopRuntimePaths -InstallRoot $root -ModelFile ([string]$cfg.localModelFile) -MmprojFile ([string]$cfg.localMmprojFile)
-    foreach ($entry in @(
+    $artifacts = @(
         @{ Label = 'llama server'; Path = $modelPaths.ServerExe },
-        @{ Label = 'Gemma model'; Path = $modelPaths.ModelFile }
-    )) {
+        @{ Label = 'Qwen model'; Path = $modelPaths.ModelFile }
+    )
+    if (-not [string]::IsNullOrWhiteSpace([string]$modelPaths.MmprojFile)) {
+        $artifacts += @{ Label = 'mmproj'; Path = $modelPaths.MmprojFile }
+    }
+    foreach ($entry in $artifacts) {
         if (Test-Path -LiteralPath $entry.Path -PathType Leaf) { $lines.Add("[OK] $($entry.Label): $($entry.Path)") }
         else {
             $errors.Add("$($entry.Label) is missing: $($entry.Path)")
