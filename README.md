@@ -2,10 +2,6 @@
   <img src="assets/Sloppy.gif" alt="Sloppy demo — animated desktop companion reacting to agent state" width="400">
 </p>
 
-<p align="center">
-  <a href="assets/Sloppy.mp4">▶ Watch the full-quality video (MP4)</a>
-</p>
-
 # Sloppy
 
 **A tiny desktop companion that makes your local coding agent visible — and easier to trust.**
