@@ -1,7 +1,7 @@
 # Sloppy portable configuration. Pure path/schema/IO helpers; no WPF, no network.
 $ErrorActionPreference = 'Stop'
 
-$script:SlopConfigVersion = 1
+$script:SlopConfigVersion = 2
 $script:SlopIdentityColors = @{
     ocean = '#6366F1'
     moss  = '#14B8A6'
@@ -61,14 +61,22 @@ function New-SlopDefaultConfig {
         modelName         = ''
         autostart         = $true
 
-        # Tier 1 bundled local brain (Gemma 4 E2B QAT Q4_0). Readiness flags
-        # describe runtime capability hooks, not enabled capture/UI wiring.
+        # Tier 1 bundled local brain (Gemma 4 E2B QAT Q4_0). localVisionReady and
+        # localAudioReady remain readiness hooks; Tier 1 voice uses the explicit
+        # Slop.Audio.ps1 paths below, not a capability flag.
         localModelName    = 'Gemma 4 E2B QAT Q4_0'
         localModelFile    = 'models\gemma-4-E2B_q4_0-it.gguf'
         localMmprojFile   = 'models\gemma-4-E2B-it-mmproj.gguf'
         localContextSize  = 8192
         localVisionReady  = $true
         localAudioReady   = $true
+
+        # Tier 1 voice input. Voice is opt-in and stays inside this machine.
+        voiceEnabled      = $false
+        whisperRuntimeFile = 'runtime\whisper\whisper-cli.exe'
+        whisperModelFile   = 'runtime\whisper\models\ggml-small.bin'
+        whisperLanguage    = 'auto'
+        voiceMaxSeconds    = 30
 
         # Part B route fields. Defaults stay local-first and disclose nothing.
         provider          = ''
@@ -130,6 +138,19 @@ function Test-SlopConfig {
     if (@(8192, 16384, 32768) -notcontains [int]$Config.localContextSize) { $errors.Add('localContextSize must be 8192, 16384, or 32768') }
     if ($Config.localVisionReady -isnot [bool]) { $errors.Add('localVisionReady must be a boolean') }
     if ($Config.localAudioReady -isnot [bool]) { $errors.Add('localAudioReady must be a boolean') }
+    if ($Config.voiceEnabled -isnot [bool]) { $errors.Add('voiceEnabled must be a boolean') }
+    if ([string]::IsNullOrWhiteSpace([string]$Config.whisperRuntimeFile) -or ([string]$Config.whisperRuntimeFile).Length -gt 260) {
+        $errors.Add('whisperRuntimeFile must be 1-260 characters')
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$Config.whisperModelFile) -or ([string]$Config.whisperModelFile).Length -gt 260) {
+        $errors.Add('whisperModelFile must be 1-260 characters')
+    }
+    if ([string]$Config.whisperLanguage -cnotmatch '^(auto|[a-z]{2,3})$') {
+        $errors.Add('whisperLanguage must be auto or a lowercase 2-3 letter code')
+    }
+    if ($Config.voiceMaxSeconds -isnot [int] -or [int]$Config.voiceMaxSeconds -lt 10 -or [int]$Config.voiceMaxSeconds -gt 120) {
+        $errors.Add('voiceMaxSeconds must be an integer between 10 and 120')
+    }
     if (([string]$Config.agentId).Length -gt 80) { $errors.Add('agentId is too long') }
     if (([string]$Config.serviceConfigPath).Length -gt 260) { $errors.Add('serviceConfigPath is too long') }
     if (([string]$Config.openCodeBaseUrl).Length -gt 260) { $errors.Add('openCodeBaseUrl is too long') }
@@ -152,13 +173,17 @@ function Read-SlopConfig {
     try { $raw = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json }
     catch { return @{ Ok = $false; Exists = $true; Config = $defaults; Reason = 'config.json is not valid JSON' } }
 
-    # Unknown keys are ignored. Missing known keys take defaults. Version 0/absent
-    # is the pre-release shape and is migrated to version 1 before validation.
+    # Unknown keys are ignored. Missing known keys take defaults. Pre-voice
+    # configs (version 0/1/absent) migrate to version 2 before validation.
     $cfg = @{}
     foreach ($key in $defaults.Keys) {
         $cfg[$key] = if ($raw.PSObject.Properties[$key]) { $raw.$key } else { $defaults[$key] }
     }
-    if ($cfg.version -isnot [int] -or $cfg.version -lt 1) { $cfg.version = 1 }
+    # Version 0/1 configs are pre-voice shapes. Normalize numeric JSON values to
+    # [int] before validation because ConvertFrom-Json emits [long].
+    if ($cfg.version -is [int] -or $cfg.version -is [long]) { $cfg.version = [int]$cfg.version }
+    else { $cfg.version = 2 }
+    if ($cfg.version -lt 2) { $cfg.version = 2 }
     if ([string]$cfg.brain -eq 'builtin' -or [string]$cfg.brain -eq 'custom' -or [string]$cfg.brain -eq 'opencode') {
         # normalise JSON booleans and strings without accepting arbitrary values
         $cfg.autostart = [bool]$cfg.autostart
@@ -172,6 +197,17 @@ function Read-SlopConfig {
     if ([string]::IsNullOrWhiteSpace([string]$cfg.localModelName)) { $cfg.localModelName = $defaults.localModelName }
     if ([string]::IsNullOrWhiteSpace([string]$cfg.localModelFile)) { $cfg.localModelFile = $defaults.localModelFile }
     if ([string]::IsNullOrWhiteSpace([string]$cfg.localMmprojFile)) { $cfg.localMmprojFile = $defaults.localMmprojFile }
+    # Voice keys are new in version 2. Existing values win; malformed values fall
+    # back to the safe default rather than locking the user out of the app.
+    if ($cfg.voiceEnabled -isnot [bool]) { $cfg.voiceEnabled = $defaults.voiceEnabled }
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.whisperRuntimeFile)) { $cfg.whisperRuntimeFile = $defaults.whisperRuntimeFile }
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.whisperModelFile)) { $cfg.whisperModelFile = $defaults.whisperModelFile }
+    if ([string]$cfg.whisperLanguage -cnotmatch '^(auto|[a-z]{2,3})$') { $cfg.whisperLanguage = $defaults.whisperLanguage }
+    if ($cfg.voiceMaxSeconds -is [int] -or $cfg.voiceMaxSeconds -is [long]) {
+        $cfg.voiceMaxSeconds = [int]$cfg.voiceMaxSeconds
+    }
+    else { $cfg.voiceMaxSeconds = 30 }
+    if ($cfg.voiceMaxSeconds -lt 10 -or $cfg.voiceMaxSeconds -gt 120) { $cfg.voiceMaxSeconds = 30 }
     # A JSON object for 'agent' arrives as PSCustomObject; the route resolver
     # only needs hashtable-style member access, so normalise it explicitly.
     if ($cfg.agent -isnot [hashtable]) {
