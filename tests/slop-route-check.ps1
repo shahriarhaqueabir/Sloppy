@@ -39,8 +39,8 @@ Describe 'Slop.Route' {
     It 'badges locality, provider and effective model - not the tier' {
         Get-SlopRouteBadge -Kind 'opencode-local' -Provider 'Ollama' -Model 'qwen3:8b' |
             Should -Be 'Local · Ollama · qwen3:8b'
-        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Gemma 4 E2B QAT Q4_0' |
-            Should -Be 'Remote · OpenCode Go · Gemma 4 E2B QAT Q4_0'
+        Get-SlopRouteBadge -Kind 'opencode-paid' -Provider 'OpenCode Go' -Model 'Qwen3.5-2B Q4_K_M' |
+            Should -Be 'Remote · OpenCode Go · Qwen3.5-2B Q4_K_M'
     }
 
     It 'rejects an unknown route kind' {
@@ -70,7 +70,7 @@ Describe 'Slop.Route' {
         $plan.RequiresDisclosure | Should -BeFalse
     }
 
-    It 'plans a local-bundled route with Gemma contract when runtime files exist' {
+    It 'plans a local-bundled route with the Qwen contract when runtime files exist' {
         $root = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-rt-' + [guid]::NewGuid().ToString('N'))
         $savedLocal = $env:LOCALAPPDATA
         try {
@@ -79,10 +79,9 @@ Describe 'Slop.Route' {
             $paths = Get-SlopRuntimePaths
             New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
             New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
-            New-Item -ItemType File -Path $paths.MmprojFile -Force | Out-Null
 
             $plan = Get-SlopRoutePlan -Config @{
-                brain='builtin'; localContextSize=16384; localModelName='Gemma 4 E2B QAT Q4_0'
+                brain='builtin'; localContextSize=16384; localModelName='Qwen3.5-2B Q4_K_M'
             } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath 'C:/fake'
 
             $plan.Ok | Should -BeTrue
@@ -90,11 +89,11 @@ Describe 'Slop.Route' {
             $plan.RouteKind | Should -Be 'local-bundled'
             $plan.ReadyToSend | Should -BeFalse
             $plan.NeedsLocalModelStart | Should -BeTrue
-            $plan.Badge | Should -Be 'Local · bundled · Gemma 4 E2B QAT Q4_0'
+            $plan.Badge | Should -Be 'Local · bundled · Qwen3.5-2B Q4_K_M'
             $plan.AdapterPath | Should -Match 'Slop\.Adapter\.OpenAi\.ps1$'
             $plan.AdapterArgs.BaseUrl | Should -Be 'http://127.0.0.1:18080'
             $plan.LocalModelContextSize | Should -Be 16384
-            $plan.LocalModelPaths.MmprojFile | Should -Match 'gemma-4-E2B-it-mmproj\.gguf$'
+            $plan.LocalModelPaths.MmprojFile | Should -Be ''
         } finally {
             $env:LOCALAPPDATA = $savedLocal
             if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }

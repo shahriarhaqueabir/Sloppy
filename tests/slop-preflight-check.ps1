@@ -13,7 +13,7 @@ Describe 'Slop preflight' {
         New-Item -ItemType Directory -Path (Join-Path $script:Root 'runtime\whisper\models') -Force | Out-Null
         New-Item -ItemType Directory -Path (Join-Path $script:Root 'models') -Force | Out-Null
         Set-Content -LiteralPath (Join-Path $script:Root 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe') -Value 'stub' -Encoding ascii
-        Set-Content -LiteralPath (Join-Path $script:Root 'models\gemma-4-E2B_q4_0-it.gguf') -Value 'stub' -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $script:Root 'models\Qwen3.5-2B-Q4_K_M.gguf') -Value 'stub' -Encoding ascii
         Set-Content -LiteralPath (Join-Path $script:Root 'runtime\whisper\whisper-cli.exe') -Value 'stub' -Encoding ascii
         $script:Model = Join-Path $script:Root 'runtime\whisper\models\ggml-small.bin'
         [IO.File]::WriteAllBytes($script:Model, [byte[]](1,2,3,4,5,6,7,8))
@@ -32,6 +32,7 @@ Describe 'Slop preflight' {
         @($report.Errors).Count | Should -Be 0
         ($report.Lines -join "`n") | Should -Match '\[OK\] config: config version 2'
         ($report.Lines -join "`n") | Should -Match '\[OK\] Whisper model SHA-1'
+        ($report.Lines -join "`n") | Should -Match '\[OK\] Qwen model'
     }
 
     It 'names a missing Whisper CLI and fails closed' {

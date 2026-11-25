@@ -21,7 +21,7 @@ if ($m.Success) {
                         'PrivacyRouteText','PrivacyTermsLink','PrivacyConversationCopy','PrivacySessionCopy','PrivacyLocalDataCopy')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
-    Assert-True ($w.FindName('RouteBadge').Text -match 'Gemma 4 E2B QAT Q4_0') 'route badge discloses the bundled model from first frame'
+    Assert-True ($w.FindName('RouteBadge').Text -match 'Qwen3\.5-2B Q4_K_M') 'route badge discloses the bundled model from first frame'
     # BrushConverter returns a Brush; SolidColorBrush::new needs a Color. A missed
     # `.Color` crashed ShowDialog in the live verifier, so guard it statically too.
     Assert-True ($src -match 'IdentityBrush = \[System\.Windows\.Media\.SolidColorBrush\]::new\(\s*\[System\.Windows\.Media\.BrushConverter\]::new\(\)\.ConvertFromString\([\s\S]*?\)\.Color\)') 'identity brush converts to Color before constructing SolidColorBrush'
@@ -189,6 +189,9 @@ if (Test-Path $noticesPath) {
 }
 Assert-True ($readme -match 'opt-in push-to-talk audio is transcribed locally') 'README documents shipped local voice transcription'
 Assert-True ($architecture -match 'bundled Whisper small') 'architecture documents local voice input'
+Assert-True ($readme -match 'Qwen3\.5-2B Q4_K_M') 'README names the Qwen Tier 1 brain'
+Assert-True ($architecture -match 'Qwen3\.5-2B Q4_K_M') 'architecture names the Qwen Tier 1 brain'
+Assert-True ($gitattributes -match 'runtime/\*\*/\*\.gguf filter=lfs') 'GGUF artifacts are tracked with Git LFS'
 
 Describe 'Slop shell / XAML static checks' {
     foreach ($check in $script:SlopChecks) {

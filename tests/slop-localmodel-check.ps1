@@ -15,12 +15,12 @@ Describe 'Slop.LocalModel' {
         }
     }
 
-    It 'resolves Gemma E2B runtime paths under a supplied install root' {
+    It 'resolves Qwen runtime paths under a supplied install root' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
         $paths.InstallRoot | Should -Be $script:TestRoot
         $paths.ServerExe | Should -Match 'runtime\\llama-b12676-bin-win-cuda-13\.5-x64\\llama-server\.exe$'
-        $paths.ModelFile | Should -Match 'models\\gemma-4-E2B_q4_0-it\.gguf$'
-        $paths.MmprojFile | Should -Match 'models\\gemma-4-E2B-it-mmproj\.gguf$'
+        $paths.ModelFile | Should -Match 'models\\Qwen3\.5-2B-Q4_K_M\.gguf$'
+        $paths.MmprojFile | Should -Be ''
         $paths.Port | Should -Be 18080
         $paths.BaseUrl | Should -Be 'http://127.0.0.1:18080'
     }
@@ -31,53 +31,58 @@ Describe 'Slop.LocalModel' {
         $paths.MmprojFile | Should -Be (Join-Path $script:TestRoot 'models\custom-mmproj.gguf')
     }
 
-    It 'reports missing server, model, mmproj, and invalid port separately' {
+    It 'requires server and model, treats empty mmproj as optional, and checks a configured mmproj' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
         $r = Test-SlopLocalModelPaths -Paths $paths
         $r.Ok | Should -BeFalse
         $r.Reason | Should -Match 'llama-server'
         $r.Reason | Should -Match 'model file'
-        $r.Reason | Should -Match 'mmproj'
+        $r.Reason | Should -Not -Match 'mmproj'
 
         New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
-        $r2 = Test-SlopLocalModelPaths -Paths $paths
-        $r2.Reason | Should -Not -Match 'llama-server'
-        $r2.Reason | Should -Match 'model file'
-
         New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+        $r2 = Test-SlopLocalModelPaths -Paths $paths
+        $r2.Ok | Should -BeTrue
+
+        $paths.MmprojFile = Join-Path $script:TestRoot 'models\missing-mmproj.gguf'
         $r3 = Test-SlopLocalModelPaths -Paths $paths
+        $r3.Ok | Should -BeFalse
         $r3.Reason | Should -Match 'mmproj'
 
-        New-Item -ItemType File -Path $paths.MmprojFile -Force | Out-Null
-        $r4 = Test-SlopLocalModelPaths -Paths $paths
-        $r4.Ok | Should -BeTrue
-
         $paths.Port = 80
-        $r5 = Test-SlopLocalModelPaths -Paths $paths
-        $r5.Ok | Should -BeFalse
-        $r5.Reason | Should -Match 'port'
+        $r4 = Test-SlopLocalModelPaths -Paths $paths
+        $r4.Ok | Should -BeFalse
+        $r4.Reason | Should -Match 'port'
     }
 
-    It 'builds llama arguments with mmproj, allowed context size, and clamped threads' {
+    It 'builds llama arguments with --jinja, no default mmproj, allowed context size, and clamped threads' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
-        $args = @(New-SlopLlamaArguments -Paths $paths -Threads 99 -ContextSize 16384)
-        $args | Should -Contain '--model'
-        $args | Should -Contain $paths.ModelFile
-        $args | Should -Contain '--mmproj'
-        $args | Should -Contain $paths.MmprojFile
-        $args | Should -Contain '--ctx-size'
-        $args | Should -Contain '16384'
-        $args | Should -Contain '--cache-ram'
-        $args | Should -Contain '0'
-        $args | Should -Contain '--host'
-        $args | Should -Contain '127.0.0.1'
-        $args | Should -Contain '--port'
-        $args | Should -Contain '18080'
-        $args | Should -Contain '--alias'
-        $args | Should -Contain 'sloppy'
-        $idx = [array]::IndexOf($args, '--threads')
-        [int]$args[$idx + 1] | Should -BeLessOrEqual 8
-        [int]$args[$idx + 1] | Should -BeGreaterOrEqual 2
+        $llamaArgs = @(New-SlopLlamaArguments -Paths $paths -Threads 99 -ContextSize 16384)
+        $llamaArgs | Should -Contain '--model'
+        $llamaArgs | Should -Contain $paths.ModelFile
+        $llamaArgs | Should -Not -Contain '--mmproj'
+        $llamaArgs | Should -Contain '--jinja'
+        $llamaArgs | Should -Contain '--ctx-size'
+        $llamaArgs | Should -Contain '16384'
+        $llamaArgs | Should -Contain '--cache-ram'
+        $llamaArgs | Should -Contain '0'
+        $llamaArgs | Should -Contain '--host'
+        $llamaArgs | Should -Contain '127.0.0.1'
+        $llamaArgs | Should -Contain '--port'
+        $llamaArgs | Should -Contain '18080'
+        $llamaArgs | Should -Contain '--alias'
+        $llamaArgs | Should -Contain 'sloppy'
+        $idx = [array]::IndexOf($llamaArgs, '--threads')
+        [int]$llamaArgs[$idx + 1] | Should -BeLessOrEqual 8
+        [int]$llamaArgs[$idx + 1] | Should -BeGreaterOrEqual 2
+    }
+
+    It 'adds --mmproj only when a projector path is configured' {
+        $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot -MmprojFile 'models\custom-mmproj.gguf'
+        $llamaArgs = @(New-SlopLlamaArguments -Paths $paths)
+        $llamaArgs | Should -Contain '--mmproj'
+        $llamaArgs | Should -Contain $paths.MmprojFile
+        $llamaArgs | Should -Contain '--jinja'
     }
 
     It 'falls back to default context size for invalid values' {
@@ -101,7 +106,6 @@ Describe 'Slop.LocalModel' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
         New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
         New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
-        New-Item -ItemType File -Path $paths.MmprojFile -Force | Out-Null
         # We cannot start a real llama-server in unit tests; assert the contract
         # by checking Start-SlopLocalModel accepts ContextSize and builds args with it.
         $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.LocalModel.ps1') -Raw

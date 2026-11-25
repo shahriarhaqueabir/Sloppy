@@ -36,14 +36,22 @@ Describe 'Slop.Config' {
         @($result.Errors).Count | Should -Be 0
     }
 
-    It 'defaults local bundled context and readiness for Gemma E2B' {
+    It 'defaults local bundled context and readiness for Qwen3.5-2B' {
         $cfg = New-SlopDefaultConfig
-        $cfg.localModelName | Should -Be 'Gemma 4 E2B QAT Q4_0'
-        $cfg.localModelFile | Should -Match 'gemma-4-E2B_q4_0-it\.gguf$'
-        $cfg.localMmprojFile | Should -Match 'gemma-4-E2B-it-mmproj\.gguf$'
+        $cfg.localModelName | Should -Be 'Qwen3.5-2B Q4_K_M'
+        $cfg.localModelFile | Should -Match 'Qwen3\.5-2B-Q4_K_M\.gguf$'
+        $cfg.localMmprojFile | Should -Be ''
         $cfg.localContextSize | Should -Be 8192
         $cfg.localVisionReady | Should -BeTrue
         $cfg.localAudioReady | Should -BeTrue
+    }
+
+    It 'accepts an empty or configured localMmprojFile as valid config' {
+        $cfg = New-SlopDefaultConfig
+        $cfg.localMmprojFile = ''
+        (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
+        $cfg.localMmprojFile = 'models\custom-mmproj.gguf'
+        (Test-SlopConfig -Config $cfg).Ok | Should -BeTrue
     }
 
     It 'accepts allowed localContextSize values and normalizes invalid ones' {
