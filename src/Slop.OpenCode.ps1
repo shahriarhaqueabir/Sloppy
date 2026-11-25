@@ -95,10 +95,32 @@ function Test-SlopOpenCodeConfig {
 function New-SlopPromptBody {
     param(
         [Parameter(Mandatory)][AllowEmptyString()][string]$Text,
-        [int]$MaxLength = 8000
+        [int]$MaxLength = 8000,
+        [string]$Instructions = '',
+        [string]$Persona = '',
+        [string]$Name = '',
+        [string]$OwnerName = ''
     )
-    if ($Text.Length -gt $MaxLength) { throw "prompt exceeds $MaxLength characters" }
-    return @{ text = $Text } | ConvertTo-Json -Depth 4 -Compress
+    $text = [string]$Text
+    $prefixParts = [Collections.Generic.List[string]]::new()
+    if (-not [string]::IsNullOrWhiteSpace($Name) -or -not [string]::IsNullOrWhiteSpace($OwnerName)) {
+        $who = [Collections.Generic.List[string]]::new()
+        if (-not [string]::IsNullOrWhiteSpace($Name)) { $who.Add("Your name is $($Name.Trim()).") | Out-Null }
+        if (-not [string]::IsNullOrWhiteSpace($OwnerName)) { $who.Add("The owner's name is $($OwnerName.Trim()).") | Out-Null }
+        if ($who.Count -gt 0) { $prefixParts.Add(($who -join ' ')) | Out-Null }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Persona)) {
+        $prefixParts.Add("Personality/style: $($Persona.Trim())") | Out-Null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($Instructions)) {
+        $prefixParts.Add("Custom instructions: $($Instructions.Trim())") | Out-Null
+    }
+    if ($prefixParts.Count -gt 0) {
+        $prefix = "[Sloppy local context]`n" + ($prefixParts -join "`n") + "`n[/Sloppy local context]`n`n"
+        $text = $prefix + $text
+    }
+    if ($text.Length -gt $MaxLength) { throw "prompt exceeds $MaxLength characters" }
+    return @{ text = $text } | ConvertTo-Json -Depth 4 -Compress
 }
 
 function New-SlopPermissionReply {

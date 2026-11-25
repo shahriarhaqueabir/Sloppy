@@ -123,6 +123,17 @@ Assert-True ($null -eq $decoded.files) 'no injected files field'
 $threw = $false; try { New-SlopPromptBody -Text ('a' * 8001) | Out-Null } catch { $threw = $true }
 Assert-True $threw 'oversized prompt throws'
 
+# --- prompt body context injection ---------------------------------------
+$ctx = New-SlopPromptBody -Text 'hello' -Instructions 'be brief' -Persona 'calm tone' -Name 'Sloppy' -OwnerName 'Alex' | ConvertFrom-Json
+Assert-True ($ctx.text -match '\[Sloppy local context\]') 'prompt body includes local context header'
+Assert-True ($ctx.text -match 'Your name is Sloppy\.') 'prompt body includes configured name'
+Assert-True ($ctx.text -match "The owner's name is Alex\.") 'prompt body includes owner name'
+Assert-True ($ctx.text -match 'Personality/style: calm tone') 'prompt body includes persona text'
+Assert-True ($ctx.text -match 'Custom instructions: be brief') 'prompt body includes custom instructions'
+Assert-True ($ctx.text -match 'hello$') 'prompt body keeps user text at end'
+$ctxThrew = $false; try { New-SlopPromptBody -Text ('b' * 7900) -Instructions ('i' * 200) | Out-Null } catch { $ctxThrew = $true }
+Assert-True $ctxThrew 'prompt body with context enforces max length'
+
 # --- permission reply ----------------------------------------------------
 Assert-True ((New-SlopPermissionReply -Decision once) -eq '{"decision":"once"}') 'once reply body'
 Assert-True ((New-SlopPermissionReply -Decision reject) -eq '{"decision":"reject"}') 'reject reply body'
