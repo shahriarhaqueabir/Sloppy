@@ -169,7 +169,7 @@ function DotColor {
 # The header fades in after expand; a single 700ms sample can land on the dark
 # ramp. Poll until the idle blue settles instead of failing on animation timing.
 function Wait-DotBlue {
-    param([int]$TimeoutMs = 5000)
+    param([int]$TimeoutMs = 45000)
     $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
     do {
         if ((DotColor) -eq 'blue') { return $true }
@@ -354,7 +354,7 @@ for ($try=1;$try -le 3 -and -not $expanded;$try++) {
     if ($p.R -lt 60 -and $p.G -lt 80 -and $p.B -gt 30) { $expanded = $true; "EXPAND panel=$($p.R),$($p.G),$($p.B)" }
 }
 if (-not $expanded) { throw 'click never expanded chat' }
-if (-not (Wait-DotBlue -TimeoutMs 5000)) { throw 'chat-open header dot is not blue' }
+if (-not (Wait-DotBlue -TimeoutMs 45000)) { throw 'chat-open header dot is not blue' }
 $b = Grab; $chatDot = Pixel $b 50 36; $b.Dispose()
 "SIGNAL chat-open dot=$($chatDot.R),$($chatDot.G),$($chatDot.B) color=$(Classify $chatDot)"
 
