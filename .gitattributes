@@ -7,3 +7,7 @@ runtime/**/*.exp filter=lfs diff=lfs merge=lfs -text
 
 # Showcase media
 assets/*.mp4 filter=lfs diff=lfs merge=lfs -text
+
+# Whisper runtime and model artifacts for Tier 1 voice input
+runtime/whisper/** filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text

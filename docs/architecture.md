@@ -120,7 +120,7 @@ opencode serve --port 28894 (Basic auth; password from ~/.config/opencode/servic
   sessions · agents · tools · permissions · MCP · websearch · events
 ```
 
-Tier 1 local brain is bundled for local-first operation: `runtime/llama-b12676-bin-win-cuda-13.5-x64/llama-server.exe`, `runtime/models/gemma-4-E2B_q4_0-it.gguf`, and `runtime/models/gemma-4-E2B-it-mmproj.gguf`. Large runtime/model artifacts are tracked via Git LFS; HF download cache under `runtime/models/.cache/` is ignored. The current request/UI path is text-only; mmproj and configurable context size are readiness hooks for future multimodal capture/request wiring, not shipped multimodal UI.
+Tier 1 local brain is bundled for local-first operation: `runtime/llama-b12676-bin-win-cuda-13.5-x64/llama-server.exe`, `runtime/models/gemma-4-E2B_q4_0-it.gguf`, and `runtime/models/gemma-4-E2B-it-mmproj.gguf`. Large runtime/model artifacts are tracked via Git LFS; HF download cache under `runtime/models/.cache/` is ignored. Text requests use the existing llama.cpp adapter. Opt-in voice input records a short WAV with WinMM, transcribes it locally with bundled Whisper small through `src/Slop.Audio.ps1`, and sends the transcript through the same text path. No audio leaves the machine, and there is no TTS or VAD. `mmproj` and `localVisionReady` stay unused readiness hooks; Tier 1 makes no image claim.
 
 The bridge creates **one OpenCode session per Slop conversation** and sends only new
 user text on each turn. Slop must stop resending its 12-message history — OpenCode
