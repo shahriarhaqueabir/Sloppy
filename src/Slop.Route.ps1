@@ -48,6 +48,7 @@ function Get-SlopRoutePlan {
         [Parameter(Mandatory)][string]$UserText,
         [string]$PersonaText = '',
         [object[]]$History = @(),
+        [object[]]$Attachments = @(),
         [string]$ObservedProviderEndpointUrl = '',
         [hashtable]$OpenCodePermissionEvidence,
         [System.Diagnostics.Process]$LocalModelProcess,
@@ -81,7 +82,7 @@ function Get-SlopRoutePlan {
             AdapterPath=(Join-Path $ScriptRootPath 'Slop.Adapter.OpenAi.ps1')
             AdapterArgs=@{
                 BaseUrl=([string]$Config.endpointUrl).TrimEnd('/')
-                RequestBody=(New-SlopChatRequestBody -SystemPrompt $PersonaText -UserText $UserText -History $History)
+                RequestBody=(New-SlopChatRequestBody -SystemPrompt $PersonaText -UserText $UserText -History $History -Attachments $Attachments)
                 LifecyclePath=$lifecyclePath; TimeoutSeconds=300
             }
             Badge=(Get-SlopRouteBadge -Kind 'custom' -Provider 'Custom' -Model $model)
@@ -155,23 +156,26 @@ function Get-SlopRoutePlan {
     }
 
     $lifecyclePath = Join-Path $ScriptRootPath 'Slop.Lifecycle.ps1'
-    $body = New-SlopChatRequestBody -SystemPrompt $PersonaText -UserText $UserText -History $History
-    $paths = Get-SlopRuntimePaths
+    $body = New-SlopChatRequestBody -SystemPrompt $PersonaText -UserText $UserText -History $History -Attachments $Attachments
+    $paths = Get-SlopRuntimePaths -ModelFile ([string]$Config.localModelFile) -MmprojFile ([string]$Config.localMmprojFile)
     $pre = Test-SlopLocalModelPaths -Paths $paths
     if (-not $pre.Ok) { return @{ Ok=$false; Kind=$kind; Reason=$pre.Reason } }
     if ($LocalModelProcess -and -not (Test-SlopOwnedModelProcess -Paths $paths -Process $LocalModelProcess)) {
         return @{ Ok=$false; Kind=$kind; Reason='the existing local brain is not the verified Sloppy-owned process' }
     }
+    $contextSize = Resolve-SlopLocalContextSize -ContextSize ([int]$Config.localContextSize)
+    $modelName = if (-not [string]::IsNullOrWhiteSpace([string]$Config.localModelName)) { [string]$Config.localModelName } else { Get-SlopBundledModelName }
     return @{
         Ok=$true; Kind='builtin'; StatusText=$(if ($LocalModelProcess) { 'Ready' } else { 'Waking up' })
         ReadyToSend=[bool]$LocalModelProcess
-        Process=$LocalModelProcess; LocalModelPaths=$paths; NeedsLocalModelStart=(-not [bool]$LocalModelProcess)
+        Process=$LocalModelProcess; LocalModelPaths=$paths; LocalModelContextSize=$contextSize
+        NeedsLocalModelStart=(-not [bool]$LocalModelProcess)
         AdapterPath=(Join-Path $ScriptRootPath 'Slop.Adapter.OpenAi.ps1')
         AdapterArgs=@{
             BaseUrl=("http://127.0.0.1:$($paths.Port)")
             RequestBody=$body; LifecyclePath=$lifecyclePath; TimeoutSeconds=300
         }
-        Badge=(Get-SlopRouteBadge -Kind 'local-bundled' -Provider 'bundled' -Model 'Gemma 4 E2B QAT Q4_0')
+        Badge=(Get-SlopRouteBadge -Kind 'local-bundled' -Provider 'bundled' -Model $modelName)
         RouteKind='local-bundled'; RequiresDisclosure=$false; PermissionProfile='companion'
     }
 }

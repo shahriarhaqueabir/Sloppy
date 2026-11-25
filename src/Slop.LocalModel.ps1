@@ -11,13 +11,30 @@ function Resolve-SlopLocalContextSize {
     return 8192
 }
 
+function Get-SlopBundledModelName { return 'Gemma 4 E2B QAT Q4_0' }
+
+function Resolve-SlopRuntimeFilePath {
+    param(
+        [Parameter(Mandatory)][string]$InstallRoot,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$File,
+        [Parameter(Mandatory)][string]$DefaultRelativePath
+    )
+    $value = if ([string]::IsNullOrWhiteSpace($File)) { $DefaultRelativePath } else { $File.Trim() }
+    if ([IO.Path]::IsPathRooted($value)) { return [IO.Path]::GetFullPath($value) }
+    return [IO.Path]::GetFullPath((Join-Path $InstallRoot $value))
+}
+
 function Get-SlopRuntimePaths {
-    param([string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'))
+    param(
+        [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'),
+        [AllowEmptyString()][string]$ModelFile = 'models\gemma-4-E2B_q4_0-it.gguf',
+        [AllowEmptyString()][string]$MmprojFile = 'models\gemma-4-E2B-it-mmproj.gguf'
+    )
     return @{
         InstallRoot = $InstallRoot
         ServerExe   = (Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe')
-        ModelFile   = (Join-Path $InstallRoot 'models\gemma-4-E2B_q4_0-it.gguf')
-        MmprojFile  = (Join-Path $InstallRoot 'models\gemma-4-E2B-it-mmproj.gguf')
+        ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'models\gemma-4-E2B_q4_0-it.gguf')
+        MmprojFile  = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $MmprojFile -DefaultRelativePath 'models\gemma-4-E2B-it-mmproj.gguf')
         Port        = $script:SlopModelPort
         BaseUrl     = "http://127.0.0.1:$script:SlopModelPort"
     }
@@ -112,6 +129,7 @@ function Start-SlopLocalModel {
     param(
         [Parameter(Mandatory)][hashtable]$Paths,
         [System.Diagnostics.Process]$Process,
+        [int]$ContextSize = 8192,
         [int]$WaitSeconds = 90
     )
     $pre = Test-SlopLocalModelPaths -Paths $Paths
@@ -125,7 +143,8 @@ function Start-SlopLocalModel {
     if (-not (Test-SlopPortAvailable -Port $Paths.Port)) {
         return @{ Ok = $false; Reason = 'another program is using the local brain port; Sloppy will not send prompts to an unverified local service'; Process = $null }
     }
-    $llamaArgs = New-SlopLlamaArguments -Paths $Paths
+    $ContextSize = Resolve-SlopLocalContextSize -ContextSize $ContextSize
+    $llamaArgs = New-SlopLlamaArguments -Paths $Paths -ContextSize $ContextSize
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = $Paths.ServerExe
     $startInfo.WorkingDirectory = Split-Path -Parent $Paths.ServerExe

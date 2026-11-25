@@ -25,6 +25,12 @@ Describe 'Slop.LocalModel' {
         $paths.BaseUrl | Should -Be 'http://127.0.0.1:18080'
     }
 
+    It 'uses configured local model/mmproj file names when provided' {
+        $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot -ModelFile 'models\custom.gguf' -MmprojFile 'models\custom-mmproj.gguf'
+        $paths.ModelFile | Should -Be (Join-Path $script:TestRoot 'models\custom.gguf')
+        $paths.MmprojFile | Should -Be (Join-Path $script:TestRoot 'models\custom-mmproj.gguf')
+    }
+
     It 'reports missing server, model, mmproj, and invalid port separately' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
         $r = Test-SlopLocalModelPaths -Paths $paths
@@ -79,6 +85,28 @@ Describe 'Slop.LocalModel' {
         $args = @(New-SlopLlamaArguments -Paths $paths -ContextSize 99999)
         $idx = [array]::IndexOf($args, '--ctx-size')
         $args[$idx + 1] | Should -Be '8192'
+    }
+
+    It 'accepts all allowed context sizes and exposes the contract' {
+        @(Get-SlopAllowedContextSizes) | Should -Be @(8192, 16384, 32768)
+        foreach ($size in 8192,16384,32768) {
+            Resolve-SlopLocalContextSize -ContextSize $size | Should -Be $size
+            $args = @(New-SlopLlamaArguments -Paths (Get-SlopRuntimePaths -InstallRoot $script:TestRoot) -ContextSize $size)
+            $idx = [array]::IndexOf($args, '--ctx-size')
+            $args[$idx + 1] | Should -Be ([string]$size)
+        }
+    }
+
+    It 'passes context size through Start-SlopLocalModel argument construction' {
+        $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
+        New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
+        New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+        New-Item -ItemType File -Path $paths.MmprojFile -Force | Out-Null
+        # We cannot start a real llama-server in unit tests; assert the contract
+        # by checking Start-SlopLocalModel accepts ContextSize and builds args with it.
+        $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.LocalModel.ps1') -Raw
+        $src | Should -Match 'function Start-SlopLocalModel\s*\{[\s\S]*?\[int\]\$ContextSize'
+        $src | Should -Match 'New-SlopLlamaArguments\s+-Paths\s+\$Paths\s+-ContextSize\s+\$ContextSize'
     }
 
     It 'detects a held loopback port and frees it afterwards' {
