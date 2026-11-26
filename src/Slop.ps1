@@ -133,8 +133,8 @@ $xaml = @'
               <StackPanel x:Name="ChatStack"/>
             </ScrollViewer>
 
-            <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+            <StackPanel x:Name="SettingsPanel" Visibility="Collapsed" Margin="12" Background="#1AFFFFFF">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
                 <StackPanel Margin="0,0,4,0">
                   <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
 
@@ -187,8 +187,8 @@ $xaml = @'
               </ScrollViewer>
             </StackPanel>
 
-            <StackPanel x:Name="CustomizePanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+            <StackPanel x:Name="CustomizePanel" Visibility="Collapsed" Margin="12" Background="#1AFFFFFF">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
                 <StackPanel Margin="0,0,4,0">
                   <TextBlock Text="Customize" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
                   <TextBlock Text="Name" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
@@ -213,8 +213,8 @@ $xaml = @'
               </ScrollViewer>
             </StackPanel>
 
-            <StackPanel x:Name="BrainPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+            <StackPanel x:Name="BrainPanel" Visibility="Collapsed" Margin="12" Background="#1AFFFFFF">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
                 <StackPanel Margin="0,0,4,0">
                   <TextBlock Text="Brain" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
                   <TextBlock x:Name="BrainRouteText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
@@ -246,8 +246,8 @@ $xaml = @'
               </ScrollViewer>
             </StackPanel>
 
-            <StackPanel x:Name="PrivacyPanel" Visibility="Collapsed" Margin="10" Background="#F41E293B">
-              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="360">
+            <StackPanel x:Name="PrivacyPanel" Visibility="Collapsed" Margin="12" Background="#1AFFFFFF">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="560">
                 <StackPanel Margin="0,0,4,0">
                   <TextBlock Text="Privacy" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
                   <TextBlock Text="Active data route" Foreground="#B8B8C0" FontSize="11" Margin="6,0,6,2"/>
