@@ -230,13 +230,14 @@ function Show-SlopOnboarding {
     $BackBtn = $dlg.FindName('BackBtn')
     $NextBtn = $dlg.FindName('NextBtn')
 
-    $NameBox.Text = [string]$Config.name
-    $OwnerBox.Text = [string]$Config.ownerName
-    $CustomBox.Text = [string]$Config.instructions
-    $EndpointBox.Text = [string]$Config.endpointUrl
-    $ModelBox.Text = if ($Config.modelName) { [string]$Config.modelName } else { [string]$Config.model }
-    $ProviderBox.Text = [string]$Config.provider
-    $RouteModelBox.Text = [string]$Config.model
+    $defaults = New-SlopDefaultConfig
+    $NameBox.Text = if ($Config.name) { [string]$Config.name } else { [string]$defaults.name }
+    $OwnerBox.Text = if ($Config.ownerName) { [string]$Config.ownerName } else { [string]$defaults.ownerName }
+    $CustomBox.Text = if ($Config.instructions) { [string]$Config.instructions } else { [string]$defaults.instructions }
+    $EndpointBox.Text = if ($Config.endpointUrl) { [string]$Config.endpointUrl } else { [string]$defaults.endpointUrl }
+    $ModelBox.Text = if ($Config.modelName) { [string]$Config.modelName } elseif ($Config.model) { [string]$Config.model } else { [string]$defaults.modelName }
+    $ProviderBox.Text = if ($Config.provider) { [string]$Config.provider } else { [string]$defaults.provider }
+    $RouteModelBox.Text = if ($Config.model) { [string]$Config.model } else { [string]$defaults.model }
     $AgentBox.Text = if ($Config.agentId) { [string]$Config.agentId } else { 'sloppy' }
     foreach ($preset in Get-SlopPersonalities) { $ProfileCombo.Items.Add($preset) | Out-Null }
     foreach ($profile in Get-SlopCapabilityProfiles) { $ProfileCombo.Items.Add($profile) | Out-Null }
