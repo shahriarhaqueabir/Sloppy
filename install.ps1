@@ -13,12 +13,25 @@ function Test-Command($name) {
     return [bool](Get-Command $name -ErrorAction SilentlyContinue)
 }
 
+function Install-ViaWinget($id, $label) {
+    if (Test-Command winget) {
+        Write-Host "Installing $label via winget..."
+        & winget install --id $id --silent --accept-package-agreements --accept-source-agreements | Out-Null
+        # refresh PATH
+        $env:Path = [Environment]::GetEnvironmentVariable('Path','Machine') + ';' + [Environment]::GetEnvironmentVariable('Path','User')
+        return (Test-Command ($id.Split('.')[1]))
+    }
+    return $false
+}
+
 Write-Host "Sloppy bootstrap installer" -ForegroundColor Cyan
 
 # --- prerequisites ---------------------------------------------------------
 if (-not (Test-Command pwsh)) {
-    Write-Host "PowerShell 7+ is required. Install from https://aka.ms/powershell" -ForegroundColor Red
-    exit 1
+    if (-not (Install-ViaWinget 'Microsoft.PowerShell' 'PowerShell 7')) {
+        Write-Host "PowerShell 7+ is required. Install from https://aka.ms/powershell" -ForegroundColor Red
+        exit 1
+    }
 }
 $ver = (Get-Command pwsh).Version
 if ($ver -lt [version]'7.6') {
@@ -26,12 +39,16 @@ if ($ver -lt [version]'7.6') {
     exit 1
 }
 if (-not (Test-Command git)) {
-    Write-Host "git is required. Install from https://git-scm.com" -ForegroundColor Red
-    exit 1
+    if (-not (Install-ViaWinget 'Git.Git' 'Git')) {
+        Write-Host "git is required. Install from https://git-scm.com" -ForegroundColor Red
+        exit 1
+    }
 }
 if (-not (Test-Command git-lfs)) {
-    Write-Host "git-lfs is required. Install from https://git-lfs.com" -ForegroundColor Red
-    exit 1
+    if (-not (Install-ViaWinget 'GitHub.GitLFS' 'Git LFS')) {
+        Write-Host "git-lfs is required. Install from https://git-lfs.com" -ForegroundColor Red
+        exit 1
+    }
 }
 
 # --- install location -----------------------------------------------------
