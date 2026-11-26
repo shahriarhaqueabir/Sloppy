@@ -157,7 +157,10 @@ function Get-SlopRoutePlan {
 
     $lifecyclePath = Join-Path $ScriptRootPath 'Slop.Lifecycle.ps1'
     $body = New-SlopChatRequestBody -SystemPrompt $PersonaText -UserText $UserText -History $History -Attachments $Attachments
-    $paths = Get-SlopRuntimePaths -ModelFile ([string]$Config.localModelFile) -MmprojFile ([string]$Config.localMmprojFile)
+    # The bundled runtime lives under the app root the caller passed in, not
+    # a hard-coded install directory. This is the same root used when Sloppy is
+    # installed under LOCALAPPDATA and when it is launched straight from a clone.
+    $paths = Get-SlopRuntimePaths -InstallRoot $RepoRootPath -ModelFile ([string]$Config.localModelFile) -MmprojFile ([string]$Config.localMmprojFile)
     $pre = Test-SlopLocalModelPaths -Paths $paths
     if (-not $pre.Ok) { return @{ Ok=$false; Kind=$kind; Reason=$pre.Reason } }
     if ($LocalModelProcess -and -not (Test-SlopOwnedModelProcess -Paths $paths -Process $LocalModelProcess)) {

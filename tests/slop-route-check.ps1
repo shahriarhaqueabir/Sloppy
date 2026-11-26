@@ -70,13 +70,35 @@ Describe 'Slop.Route' {
         $plan.RequiresDisclosure | Should -BeFalse
     }
 
+    It 'resolves bundled runtime from the app root, not LOCALAPPDATA' {
+        $repoRoot = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-root-' + [guid]::NewGuid().ToString('N'))
+        $emptyLocal = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-empty-' + [guid]::NewGuid().ToString('N'))
+        $savedLocal = $env:LOCALAPPDATA
+        try {
+            New-Item -ItemType Directory -Path (Join-Path $repoRoot 'runtime\llama-b12676-bin-win-cpu-x64') -Force | Out-Null
+            New-Item -ItemType Directory -Path (Join-Path $repoRoot 'runtime\models') -Force | Out-Null
+            Set-Content -LiteralPath (Join-Path $repoRoot 'runtime\llama-b12676-bin-win-cpu-x64\llama-server.exe') -Value ('x' * 2048) -NoNewline
+            Set-Content -LiteralPath (Join-Path $repoRoot 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf') -Value ('x' * 2048) -NoNewline
+            $env:LOCALAPPDATA = $emptyLocal
+
+            $plan = Get-SlopRoutePlan -Config @{ brain='builtin' } -UserText 'hello' `
+                -ScriptRootPath (Join-Path $repoRoot 'src') -RepoRootPath $repoRoot
+            $plan.Ok | Should -BeTrue
+            $plan.LocalModelPaths.ServerExe | Should -Be (Join-Path $repoRoot 'runtime\llama-b12676-bin-win-cpu-x64\llama-server.exe')
+            $plan.LocalModelPaths.ModelFile | Should -Be (Join-Path $repoRoot 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf')
+        } finally {
+            $env:LOCALAPPDATA = $savedLocal
+            if (Test-Path -LiteralPath $repoRoot) { Remove-Item -LiteralPath $repoRoot -Recurse -Force }
+            if (Test-Path -LiteralPath $emptyLocal) { Remove-Item -LiteralPath $emptyLocal -Recurse -Force }
+        }
+    }
+
     It 'plans a local-bundled route with the Qwen contract when runtime files exist' {
         $root = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-rt-' + [guid]::NewGuid().ToString('N'))
         $savedLocal = $env:LOCALAPPDATA
         try {
             New-Item -ItemType Directory -Path $root -Force | Out-Null
-            $env:LOCALAPPDATA = $root
-            $paths = Get-SlopRuntimePaths
+            $paths = Get-SlopRuntimePaths -InstallRoot $root
             New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ServerExe) -Force | Out-Null
             New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ModelFile) -Force | Out-Null
             Set-Content -LiteralPath $paths.ServerExe -Value ('x' * 2048) -NoNewline
@@ -84,7 +106,7 @@ Describe 'Slop.Route' {
 
             $plan = Get-SlopRoutePlan -Config @{
                 brain='builtin'; localContextSize=16384; localModelName='Qwen3.5-2B Q4_K_M'
-            } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath 'C:/fake'
+            } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath $root
 
             $plan.Ok | Should -BeTrue
             $plan.Kind | Should -Be 'builtin'
@@ -104,15 +126,12 @@ Describe 'Slop.Route' {
 
     It 'fails closed for local-bundled route when runtime files are missing' {
         $root = Join-Path ([IO.Path]::GetTempPath()) ('slop-route-miss-' + [guid]::NewGuid().ToString('N'))
-        $savedLocal = $env:LOCALAPPDATA
         try {
             New-Item -ItemType Directory -Path $root -Force | Out-Null
-            $env:LOCALAPPDATA = $root
-            $plan = Get-SlopRoutePlan -Config @{ brain='builtin' } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath 'C:/fake'
+            $plan = Get-SlopRoutePlan -Config @{ brain='builtin' } -UserText 'hello' -ScriptRootPath 'C:/fake/src' -RepoRootPath $root
             $plan.Ok | Should -BeFalse
             $plan.Reason | Should -Match 'missing|llama-server|model'
         } finally {
-            $env:LOCALAPPDATA = $savedLocal
             if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
         }
     }
