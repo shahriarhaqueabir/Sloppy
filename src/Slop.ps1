@@ -138,12 +138,12 @@ $xaml = @'
                 <StackPanel Margin="0,0,4,0">
                   <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
 
-                  <TextBlock Text="Companion" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,0,6,4"/>
+                  <TextBlock Text="Companion" Foreground="#A5B4FC" FontSize="10" FontWeight="SemiBold" Margin="6,0,6,4"/>
                   <TextBlock Text="Custom instructions" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="SettingsInstructionsBox" Height="56" FontSize="11" AcceptsReturn="True"
                            TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="6,0,6,8" Padding="6,4"/>
 
-                  <TextBlock Text="Brain / runtime" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <TextBlock Text="Brain / runtime" Foreground="#A5B4FC" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
                   <TextBlock Text="Model (synced to model/modelName)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="SettingsModelBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
                   <TextBlock Text="OpenCode base URL (loopback only)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
@@ -151,7 +151,7 @@ $xaml = @'
                   <TextBlock Text="OpenCode agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="SettingsAgentIdBox" Height="28" FontSize="11" Margin="6,0,6,8" Padding="6,4"/>
 
-                  <TextBlock Text="Voice input" Foreground="#93A4BD" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
+                  <TextBlock Text="Voice input" Foreground="#A5B4FC" FontSize="10" FontWeight="SemiBold" Margin="6,4,6,4"/>
                   <CheckBox x:Name="VoiceEnabledCheck" Content="Voice enabled (local transcription, off by default)"
                             Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,6"/>
                   <TextBlock Text="Language" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
@@ -166,9 +166,9 @@ $xaml = @'
                   <TextBlock x:Name="VoiceReadyText" Text="Whisper readiness: unknown" Foreground="#8A8A96"
                              FontSize="10" TextWrapping="Wrap" Margin="6,0,6,10"/>
 
-                  <Button x:Name="SettingsSaveButton" Content="Save settings" HorizontalAlignment="Left"
+                  <Button x:Name="SettingsSaveButton" Content="Save" HorizontalAlignment="Left"
                           Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
-                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                          Background="#6366F1" Foreground="White" Padding="10,4"/>
                   <TextBlock x:Name="SettingsStatusText" Text="" Foreground="#93A4BD" FontSize="10"
                              TextWrapping="Wrap" Margin="6,0,6,10"/>
 
@@ -202,9 +202,9 @@ $xaml = @'
                   <TextBlock Text="Persona text" Foreground="#B8B8C0" FontSize="11" Margin="6,4,6,2"/>
                   <TextBox x:Name="CustomizePersonaBox" Height="110" FontSize="10" AcceptsReturn="True"
                            TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Margin="6,0,6,8" Padding="6,4"/>
-                  <Button x:Name="CustomizeSaveButton" Content="Save customization" HorizontalAlignment="Left"
+                  <Button x:Name="CustomizeSaveButton" Content="Save" HorizontalAlignment="Left"
                           Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
-                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                          Background="#6366F1" Foreground="White" Padding="10,4"/>
                   <TextBlock x:Name="CustomizeStatusText" Text="" Foreground="#93A4BD" FontSize="10"
                              TextWrapping="Wrap" Margin="6,0,6,10"/>
                   <Button x:Name="CustomizeBack" Content="Back to chat" HorizontalAlignment="Left"
@@ -235,9 +235,9 @@ $xaml = @'
                   <TextBox x:Name="BrainAgentIdBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
                   <TextBlock Text="Capability profile" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <ComboBox x:Name="BrainProfileCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
-                  <Button x:Name="BrainSaveButton" Content="Save brain" HorizontalAlignment="Left"
+                  <Button x:Name="BrainSaveButton" Content="Save" HorizontalAlignment="Left"
                           Style="{StaticResource SlopButton}" FontSize="10" Margin="6,0,6,6"
-                          Background="#3B82F6" Foreground="White" Padding="10,4"/>
+                          Background="#6366F1" Foreground="White" Padding="10,4"/>
                   <TextBlock x:Name="BrainStatusText" Text="" Foreground="#93A4BD" FontSize="10"
                              TextWrapping="Wrap" Margin="6,0,6,10"/>
                   <Button x:Name="BrainBack" Content="Back to chat" HorizontalAlignment="Left"
