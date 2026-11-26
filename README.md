@@ -99,6 +99,7 @@ Requirements:
 - PowerShell 7.6 or later, in STA mode
 - Git LFS (to fetch bundled runtime artifacts in a source checkout)
 - For Tier 1: `runtime/models/Qwen3.5-2B-Q4_K_M.gguf` is tracked via Git LFS (1.3 GB) and fetched on checkout; no manual model supply step
+- Tier 1 runs on any Windows PC: an NVIDIA/CUDA build is used when available, otherwise a bundled CPU build. No GPU required.
 - Optional for voice: supply `whisper-cli.exe` and `ggml-small.bin` under `runtime/whisper/` yourself; LFS rules are configured, but these artifacts are not bundled in this checkout (live mic/Whisper smoke deferred)
 - Optional: a local OpenCode service with your agent, model and provider configured for Tier 2/OpenCode routing
 
