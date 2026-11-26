@@ -66,7 +66,7 @@ function New-SlopDefaultConfig {
         # Slop.Audio.ps1 paths below, not a capability flag. localMmprojFile is
         # empty on the default text-only path and is only checked when supplied.
         localModelName    = 'Qwen3.5-2B Q4_K_M'
-        localModelFile    = 'models\Qwen3.5-2B-Q4_K_M.gguf'
+        localModelFile    = 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf'
         localMmprojFile   = ''
         localContextSize  = 8192
         localVisionReady  = $true

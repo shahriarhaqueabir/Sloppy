@@ -11,9 +11,9 @@ Describe 'Slop preflight' {
         $script:Root = Join-Path ([IO.Path]::GetTempPath()) ('slop-preflight-' + [guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Path (Join-Path $script:Root 'runtime\llama-b12676-bin-win-cuda-13.5-x64') -Force | Out-Null
         New-Item -ItemType Directory -Path (Join-Path $script:Root 'runtime\whisper\models') -Force | Out-Null
-        New-Item -ItemType Directory -Path (Join-Path $script:Root 'models') -Force | Out-Null
-        Set-Content -LiteralPath (Join-Path $script:Root 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe') -Value 'stub' -Encoding ascii
-        Set-Content -LiteralPath (Join-Path $script:Root 'models\Qwen3.5-2B-Q4_K_M.gguf') -Value 'stub' -Encoding ascii
+        New-Item -ItemType Directory -Path (Join-Path $script:Root 'runtime\models') -Force | Out-Null
+        Set-Content -LiteralPath (Join-Path $script:Root 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe') -Value ('x' * 2048) -Encoding ascii
+        Set-Content -LiteralPath (Join-Path $script:Root 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf') -Value ('x' * 2048) -Encoding ascii
         Set-Content -LiteralPath (Join-Path $script:Root 'runtime\whisper\whisper-cli.exe') -Value 'stub' -Encoding ascii
         $script:Model = Join-Path $script:Root 'runtime\whisper\models\ggml-small.bin'
         [IO.File]::WriteAllBytes($script:Model, [byte[]](1,2,3,4,5,6,7,8))

@@ -27,7 +27,7 @@ function Resolve-SlopRuntimeFilePath {
 function Get-SlopRuntimePaths {
     param(
         [string]$InstallRoot = (Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'),
-        [AllowEmptyString()][string]$ModelFile = 'models\Qwen3.5-2B-Q4_K_M.gguf',
+        [AllowEmptyString()][string]$ModelFile = 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf',
         [AllowEmptyString()][string]$MmprojFile = ''
     )
     $resolvedMmproj = ''
@@ -52,7 +52,7 @@ function Get-SlopRuntimePaths {
     return @{
         InstallRoot = $InstallRoot
         ServerExe   = $serverExe
-        ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'models\Qwen3.5-2B-Q4_K_M.gguf')
+        ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'runtime\models\Qwen3.5-2B-Q4_K_M.gguf')
         MmprojFile  = $resolvedMmproj
         Port        = $script:SlopModelPort
         BaseUrl     = "http://127.0.0.1:$script:SlopModelPort"
