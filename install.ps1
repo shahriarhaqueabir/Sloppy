@@ -67,7 +67,7 @@ $wsh = New-Object -ComObject WScript.Shell
 $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'
 $shortcut = $wsh.CreateShortcut((Join-Path $startMenu 'Sloppy.lnk'))
 $shortcut.TargetPath = 'pwsh.exe'
-$shortcut.Arguments = "-STA -File `"$installDir\src\Slop.ps1`""
+$shortcut.Arguments = "-WindowStyle Hidden -STA -File `"$installDir\src\Slop.ps1`""
 $shortcut.WorkingDirectory = $installDir
 $shortcut.IconLocation = "$installDir\assets\sloppy.ico"
 $shortcut.Save()

@@ -87,11 +87,13 @@ It uses winget to install PowerShell 7, Git and Git LFS, then clones and sets up
 irm https://raw.githubusercontent.com/shahriarhaqueabir/Sloppy/main/install.ps1 | iex
 ```
 
-**From a clone:**
+**From a clone (headless, no console window):**
 
 ```powershell
-pwsh -STA -File src/Slop.ps1
+pwsh -WindowStyle Hidden -STA -File src/Slop.ps1
 ```
+
+Or double-click `run.cmd`.
 
 Requirements:
 
