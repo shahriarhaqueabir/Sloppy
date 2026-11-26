@@ -25,4 +25,15 @@ jobs:
         shell: pwsh
         run: |
           Import-Module Pester -MinimumVersion 6.0
-          Invoke-Pester -Path tests/Slop.Tests.ps1 -CI -Output Detailed
+          # Skip slop-opencode-check.ps1 (requires a user-specific global OpenCode config).
+          $agg = 'tests/Slop.CI.Tests.ps1'
+          @'
+$ErrorActionPreference = 'Stop'
+Import-Module Pester -MinimumVersion 6.0
+Get-ChildItem -Path $PSScriptRoot -Filter '*-check.ps1' |
+    Where-Object { $_.Name -ne 'slop-opencode-check.ps1' } |
+    Sort-Object Name |
+    ForEach-Object { . $_.FullName }
+'@ | Set-Content -Path $agg
+          Invoke-Pester -Path $agg -CI -Output Detailed
+          Remove-Item $agg -Force
