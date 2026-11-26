@@ -78,7 +78,13 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 
 ## Quick start
 
-There is no installer yet. The honest current path is:
+One-line install (PowerShell 7.6+):
+
+```powershell
+irm https://raw.githubusercontent.com/shahriarhaqueabir/Sloppy/main/install.ps1 | iex
+```
+
+Or run from a clone:
 
 ```powershell
 pwsh -STA -File src/Slop.ps1
