@@ -22,7 +22,7 @@ $m = [regex]::Match($src, '\$xaml = @''\r?\n(?<xaml>.*?)\r?\n''@', 'Singleline')
 Assert-True $m.Success 'XAML here-string found'
 if ($m.Success) {
     $w = [System.Windows.Markup.XamlReader]::Parse($m.Groups['xaml'].Value)
-    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','IdentityRing','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
+    foreach ($name in @('BodyPath','HeadHighlight','Frame','SettingsDot','PinDot','CloseDot','ControlDots','ChatScroll','ChatStack','InputBox','MicBtn','StatusDot','ResizeGrip','PeaCanvas','GroundShadow','ShortcutsStrip','RouteBadge','VoiceEnabledCheck','VoiceLanguageCombo','VoiceMaxSecondsBox','VoiceRepairButton','VoiceReadyText')) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
     # Four quiet destinations: each panel and its read-only views must exist.

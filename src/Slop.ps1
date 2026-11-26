@@ -313,9 +313,6 @@ $xaml = @'
     <Border x:Name="ResizeGrip" Width="16" Height="16" Canvas.Right="0" Canvas.Bottom="0"
             Background="Transparent" Cursor="SizeNWSE" ToolTip="Resize"/>
 
-    <!-- Decorative identity halo. The signal palette is untouched. -->
-    <Ellipse x:Name="IdentityRing" Width="30" Height="30" Canvas.Left="227" Canvas.Top="292"
-             Fill="#6366F1" Opacity="0.35" IsHitTestVisible="False"/>
 
     <!-- Idle pea shapes (only one visible) -->
     <Canvas x:Name="PeaCanvas" Width="26" Height="26" Canvas.Left="229" Canvas.Top="292" Cursor="Hand">
@@ -352,7 +349,6 @@ $window.Dispatcher.Add_UnhandledException({ param($s,$e) Write-Warning $e.Except
 $Frame = $window.FindName('Frame')
 $StatusDot = $window.FindName('StatusDot')
 $RouteBadge = $window.FindName('RouteBadge')
-$IdentityRing = $window.FindName('IdentityRing')
 $DragHandle = $window.FindName('DragHandle')
 $BodyPath = $window.FindName('BodyPath')
 $HeadHighlight = $window.FindName('HeadHighlight')
@@ -478,8 +474,6 @@ function Update-PeaAnchor {
     [System.Windows.Controls.Canvas]::SetTop($PeaCanvas, [Math]::Max(0.0, $h - 38.0))
     [System.Windows.Controls.Canvas]::SetLeft($GroundShadow, ($w - 30.0) / 2.0)
     [System.Windows.Controls.Canvas]::SetTop($GroundShadow, [Math]::Max(0.0, $h - 14.0))
-    [System.Windows.Controls.Canvas]::SetLeft($IdentityRing, ($w - 30.0) / 2.0)
-    [System.Windows.Controls.Canvas]::SetTop($IdentityRing, [Math]::Max(0.0, $h - 42.0))
 }
 
 # Growth origin used by the membrane: the pea's centre in window coordinates.
@@ -1157,7 +1151,6 @@ function Update-SlopIdentityFromConfig {
     $script:IdentityBrush = [System.Windows.Media.SolidColorBrush]::new(
         [System.Windows.Media.BrushConverter]::new().ConvertFromString(
             (Get-SlopIdentityColor -ColorKey ([string]$cfg.color))).Color)
-    $IdentityRing.Fill = $script:IdentityBrush
 }
 
 function Set-SlopComboItems {
