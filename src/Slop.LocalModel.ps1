@@ -37,9 +37,21 @@ function Get-SlopRuntimePaths {
         # parameter satisfied without allowing an empty mandatory string.
         $resolvedMmproj = Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $MmprojFile -DefaultRelativePath $MmprojFile
     }
+    # Pick the best available bundled runtime: prefer CUDA when an NVIDIA GPU is
+    # present, otherwise fall back to the CPU build so Tier 1 works on any PC.
+    $cudaExe = Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe'
+    $cpuExe  = Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cpu-x64\llama-server.exe'
+    $hasNvidia = $false
+    try { if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) { $hasNvidia = $true } } catch { }
+    if (-not $hasNvidia) {
+        try { $hasNvidia = [bool](Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'NVIDIA' }) } catch { }
+    }
+    $serverExe = if ($hasNvidia -and (Test-Path -LiteralPath $cudaExe)) { $cudaExe }
+                 elseif (Test-Path -LiteralPath $cpuExe) { $cpuExe }
+                 else { $cudaExe }
     return @{
         InstallRoot = $InstallRoot
-        ServerExe   = (Join-Path $InstallRoot 'runtime\llama-b12676-bin-win-cuda-13.5-x64\llama-server.exe')
+        ServerExe   = $serverExe
         ModelFile   = (Resolve-SlopRuntimeFilePath -InstallRoot $InstallRoot -File $ModelFile -DefaultRelativePath 'models\Qwen3.5-2B-Q4_K_M.gguf')
         MmprojFile  = $resolvedMmproj
         Port        = $script:SlopModelPort
