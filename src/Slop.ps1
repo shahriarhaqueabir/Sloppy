@@ -24,7 +24,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, Sys
 . (Join-Path $PSScriptRoot 'Slop.Surfaces.ps1')
 # Disclosure acceptance is per app lifetime; never persisted.
 $script:SlopDisclosureAccepted = $false
-$script:VoiceInstallRoot = Get-SlopVoiceInstallRoot
+$script:VoiceInstallRoot = Get-SlopVoiceInstallRoot -InstallRoot (Split-Path $PSScriptRoot -Parent)
 
 $xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"

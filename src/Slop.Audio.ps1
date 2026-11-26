@@ -10,12 +10,17 @@ function Get-SlopWhisperLanguages {
 }
 
 function Get-SlopVoiceInstallRoot {
-    # Mirror Slop.LocalModel.ps1: the installed app keeps runtime/ under
-    # LOCALAPPDATA. Tests override it so they never touch the real install.
+    param([string]$InstallRoot)
+    # The bundled runtime lives under the actual app root the shell passes in.
+    # Tests override it so they never touch the real install; the fallback is
+    # the installer's own location (%LOCALAPPDATA%\Sloppy), not a second path.
     if (-not [string]::IsNullOrWhiteSpace($env:SLOP_TEST_INSTALL_ROOT)) {
         return [IO.Path]::GetFullPath($env:SLOP_TEST_INSTALL_ROOT)
     }
-    return [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Programs\Sloppy'))
+    if (-not [string]::IsNullOrWhiteSpace($InstallRoot)) {
+        return [IO.Path]::GetFullPath($InstallRoot)
+    }
+    return [IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'Sloppy'))
 }
 
 function Get-SlopVoiceReadinessText {

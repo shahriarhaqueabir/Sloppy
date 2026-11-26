@@ -89,11 +89,9 @@ irm https://raw.githubusercontent.com/shahriarhaqueabir/Sloppy/main/install.ps1 
 
 **From a clone (headless, no console window):**
 
-```powershell
-pwsh -WindowStyle Hidden -STA -File src/Slop.ps1
-```
-
-Or double-click `run.cmd`.
+Double-click `run.cmd`. It uses a VBScript wrapper so no PowerShell console
+flashes. `pwsh -WindowStyle Hidden -STA -File src/Slop.ps1` still works but can
+briefly show a console on Windows.
 
 Requirements:
 

@@ -215,6 +215,10 @@ Assert-True ($src -match '\$cfg\.whisperLanguage = \(\[string\]\$VoiceLanguageCo
 Assert-True ($src -match '\[int\]::TryParse\(\[string\]\$VoiceMaxSecondsBox\.Text') 'Settings saves a validated voiceMaxSeconds'
 Assert-True ($src -match 'Invoke-SlopPreflight -InstallRoot \$script:VoiceInstallRoot') 'Repair voice runs the report-only preflight'
 Assert-True ($src -match 'Get-SlopVoiceReadinessText -Config \$cfg') 'Settings shows exact Whisper readiness'
+Assert-True ($src -match 'Get-SlopVoiceInstallRoot -InstallRoot') 'voice install root follows the actual app root'
+$installer = Get-Content (Join-Path $PSScriptRoot '../install.ps1') -Raw
+Assert-True ($installer -notmatch 'TargetPath = ''pwsh\.exe''') 'installed shortcut does not launch pwsh directly'
+Assert-True ($installer -match 'wscript\.exe' -and $installer -match 'run\.vbs') 'installed shortcut uses the headless VBS launcher'
 
 Assert-True ($src -match 'function Start-SlopVoiceTranscription') 'voice transcription has a named worker starter'
 Assert-True ($src -match 'Invoke-SlopWhisperTranscription -Paths \$Paths -WavPath \$Wav') 'voice worker invokes the local Whisper wrapper'

@@ -77,6 +77,16 @@ echo second line
         Get-SlopVoiceReadinessText -Config $cfg | Should -Match 'whisperModelFile'
     }
 
+    It 'honors an explicit app root for the voice install root' {
+        Remove-Item Env:SLOP_TEST_INSTALL_ROOT -ErrorAction SilentlyContinue
+        $appRoot = Join-Path ([IO.Path]::GetTempPath()) ('slop-voice-root-' + [guid]::NewGuid().ToString('N'))
+        try {
+            Get-SlopVoiceInstallRoot -InstallRoot $appRoot | Should -Be ([IO.Path]::GetFullPath($appRoot))
+        } finally {
+            if (Test-Path -LiteralPath $appRoot) { Remove-Item -LiteralPath $appRoot -Recurse -Force }
+        }
+    }
+
     It 'offers a bounded language list including auto' {
         $langs = @(Get-SlopWhisperLanguages)
         $langs[0] | Should -Be 'auto'
