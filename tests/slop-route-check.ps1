@@ -77,8 +77,10 @@ Describe 'Slop.Route' {
             New-Item -ItemType Directory -Path $root -Force | Out-Null
             $env:LOCALAPPDATA = $root
             $paths = Get-SlopRuntimePaths
-            New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
-            New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+            New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ServerExe) -Force | Out-Null
+            New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ModelFile) -Force | Out-Null
+            Set-Content -LiteralPath $paths.ServerExe -Value ('x' * 2048) -NoNewline
+            Set-Content -LiteralPath $paths.ModelFile -Value ('x' * 2048) -NoNewline
 
             $plan = Get-SlopRoutePlan -Config @{
                 brain='builtin'; localContextSize=16384; localModelName='Qwen3.5-2B Q4_K_M'
