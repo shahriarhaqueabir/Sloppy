@@ -120,7 +120,7 @@ $xaml = @'
                   Content="X" ToolTip="Minimize to tray" AutomationProperties.Name="Minimize Slop to tray"/>
         </StackPanel>
       </Border>
-      <Border Grid.Row="1" Margin="18,8,18,4" CornerRadius="14" Background="#1AFFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1">
+      <Border Grid.Row="1" Margin="24,12,24,8" CornerRadius="14" Background="#1AFFFFFF" BorderBrush="#33FFFFFF" BorderThickness="1">
         <Grid>
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -129,7 +129,7 @@ $xaml = @'
           <WrapPanel x:Name="ShortcutsStrip" Grid.Row="0" Margin="8,6,8,2"/>
           <!-- Chat and the four quiet destinations share one cell. Only one is visible. -->
           <Grid Grid.Row="1">
-            <ScrollViewer x:Name="ChatScroll" VerticalScrollBarVisibility="Auto" Margin="8">
+            <ScrollViewer x:Name="ChatScroll" VerticalScrollBarVisibility="Auto" Margin="12">
               <StackPanel x:Name="ChatStack"/>
             </ScrollViewer>
 
@@ -277,8 +277,8 @@ $xaml = @'
         </Grid>
       </Border>
       <Border x:Name="InputTile" Grid.Row="2" Background="#1EFFFFFF"
-              BorderBrush="#33FFFFFF" BorderThickness="1" Padding="10"
-              Margin="20,4,20,16" CornerRadius="14" SnapsToDevicePixels="True">
+              BorderBrush="#33FFFFFF" BorderThickness="1" Padding="12"
+              Margin="24,8,24,20" CornerRadius="14" SnapsToDevicePixels="True">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
