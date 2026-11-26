@@ -39,8 +39,10 @@ Describe 'Slop.LocalModel' {
         $r.Reason | Should -Match 'model file'
         $r.Reason | Should -Not -Match 'mmproj'
 
-        New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
-        New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+        New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ServerExe) -Force | Out-Null
+        New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ModelFile) -Force | Out-Null
+        Set-Content -LiteralPath $paths.ServerExe -Value ('x' * 2048) -NoNewline
+        Set-Content -LiteralPath $paths.ModelFile -Value ('x' * 2048) -NoNewline
         $r2 = Test-SlopLocalModelPaths -Paths $paths
         $r2.Ok | Should -BeTrue
 
@@ -104,8 +106,10 @@ Describe 'Slop.LocalModel' {
 
     It 'passes context size through Start-SlopLocalModel argument construction' {
         $paths = Get-SlopRuntimePaths -InstallRoot $script:TestRoot
-        New-Item -ItemType File -Path $paths.ServerExe -Force | Out-Null
-        New-Item -ItemType File -Path $paths.ModelFile -Force | Out-Null
+        New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ServerExe) -Force | Out-Null
+        New-Item -ItemType Directory -Path (Split-Path -Parent $paths.ModelFile) -Force | Out-Null
+        Set-Content -LiteralPath $paths.ServerExe -Value ('x' * 2048) -NoNewline
+        Set-Content -LiteralPath $paths.ModelFile -Value ('x' * 2048) -NoNewline
         # We cannot start a real llama-server in unit tests; assert the contract
         # by checking Start-SlopLocalModel accepts ContextSize and builds args with it.
         $src = Get-Content (Join-Path $PSScriptRoot '../src/Slop.LocalModel.ps1') -Raw

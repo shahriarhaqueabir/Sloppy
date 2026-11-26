@@ -63,7 +63,13 @@ function Test-SlopLocalModelPaths {
     param([Parameter(Mandatory)][hashtable]$Paths)
     $errors = [Collections.Generic.List[string]]::new()
     if (-not (Test-Path -LiteralPath $Paths.ServerExe)) { $errors.Add('the built-in brain is missing llama-server.exe') }
+    elseif ((Get-Item -LiteralPath $Paths.ServerExe).Length -lt 1KB) {
+        $errors.Add('llama-server.exe is a Git LFS pointer; run "git lfs pull" in the Sloppy folder')
+    }
     if (-not (Test-Path -LiteralPath $Paths.ModelFile)) { $errors.Add('the built-in brain model file is missing') }
+    elseif ((Get-Item -LiteralPath $Paths.ModelFile).Length -lt 1KB) {
+        $errors.Add('the model file is a Git LFS pointer; run "git lfs pull" in the Sloppy folder')
+    }
     if (-not [string]::IsNullOrWhiteSpace([string]$Paths.MmprojFile) -and
         -not (Test-Path -LiteralPath $Paths.MmprojFile)) {
         $errors.Add('the built-in brain mmproj file is missing')
