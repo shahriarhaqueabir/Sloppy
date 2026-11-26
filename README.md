@@ -78,13 +78,16 @@ Everything above is wired in the WPF / PowerShell frontend; the capability and t
 
 ## Quick start
 
-One-line install (PowerShell 7.6+):
+**Windows (nothing installed):** download `install.cmd` from the repo (or the latest release) and double-click it.
+It uses winget to install PowerShell 7, Git and Git LFS, then clones and sets up Sloppy automatically.
+
+**PowerShell 7.6+ already installed:**
 
 ```powershell
 irm https://raw.githubusercontent.com/shahriarhaqueabir/Sloppy/main/install.ps1 | iex
 ```
 
-Or run from a clone:
+**From a clone:**
 
 ```powershell
 pwsh -STA -File src/Slop.ps1
