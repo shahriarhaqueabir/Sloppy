@@ -104,17 +104,17 @@ $xaml = @'
       <Border x:Name="ControlDots" Grid.Row="0" HorizontalAlignment="Right"
               VerticalAlignment="Center" Margin="0,0,14,0" Padding="3"
               Background="#221E293B" BorderBrush="#44FFFFFF" BorderThickness="1"
-              CornerRadius="10" Opacity="0.35" SnapsToDevicePixels="True">
+              CornerRadius="10" Opacity="0.6" SnapsToDevicePixels="True">
         <StackPanel Orientation="Horizontal">
-          <Button x:Name="SettingsDot" Width="16" Height="16" Margin="0,0,4,0"
+          <Button x:Name="SettingsDot" Width="18" Height="18" Margin="0,0,4,0"
                   Style="{StaticResource SlopButton}" Background="#33BFDBFE"
                   BorderThickness="1" BorderBrush="#55FFFFFF" Cursor="Hand" FontSize="9" FontWeight="Bold"
                   Content="□" ToolTip="Full screen" AutomationProperties.Name="Maximize Slop to work area"/>
-          <Button x:Name="PinDot" Width="16" Height="16" Margin="0,0,4,0"
+          <Button x:Name="PinDot" Width="18" Height="18" Margin="0,0,4,0"
                   Style="{StaticResource SlopButton}" Background="#33BFDBFE"
                   BorderThickness="1" BorderBrush="#55FFFFFF" Cursor="Hand" FontSize="9" FontWeight="Bold"
                   Content="_" ToolTip="Minimize to blob" AutomationProperties.Name="Collapse Slop to pea"/>
-          <Button x:Name="CloseDot" Width="16" Height="16"
+          <Button x:Name="CloseDot" Width="18" Height="18"
                   Style="{StaticResource SlopButton}" Background="#33BFDBFE"
                   BorderThickness="1" BorderBrush="#55FFFFFF" Cursor="Hand" FontSize="9" FontWeight="Bold"
                   Content="X" ToolTip="Minimize to tray" AutomationProperties.Name="Minimize Slop to tray"/>
@@ -558,7 +558,7 @@ $SettingsDot.Add_Click({
 $PinDot.Add_Click({ Collapse-Chat })
 $CloseDot.Add_Click({ Minimize-ToTray })
 $ControlDots.Add_MouseEnter({ $ControlDots.Opacity = 0.95 })
-$ControlDots.Add_MouseLeave({ $ControlDots.Opacity = 0.35 })
+$ControlDots.Add_MouseLeave({ $ControlDots.Opacity = 0.6 })
 
 # --- State ---
 $script:IsStreaming = $false
@@ -825,7 +825,15 @@ function Minimize-ToTray {
     if ($script:TrayIcon) { return }
     $script:TrayIcon = New-Object System.Windows.Forms.NotifyIcon
     $script:TrayIcon.Text = 'S.L.O.P.'
-    try { $script:TrayIcon.Icon = [System.Drawing.SystemIcons]::Application } catch { }
+    $iconPath = Join-Path $PSScriptRoot 'assets\sloppy.ico'
+    if (-not (Test-Path -LiteralPath $iconPath)) { $iconPath = Join-Path $PSScriptRoot '..\assets\sloppy.ico' }
+    try {
+        if (Test-Path -LiteralPath $iconPath) {
+            $script:TrayIcon.Icon = [System.Drawing.Icon]::new($iconPath)
+        } else {
+            $script:TrayIcon.Icon = [System.Drawing.SystemIcons]::Application
+        }
+    } catch { $script:TrayIcon.Icon = [System.Drawing.SystemIcons]::Application }
     $menu = New-Object System.Windows.Forms.ContextMenuStrip
     $restore = $menu.Items.Add('Restore')
     $restore.Add_Click({ $window.Show(); $window.WindowState = 'Normal'; $window.Activate(); Update-SlopFaceRegion })
