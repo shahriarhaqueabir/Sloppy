@@ -1017,11 +1017,14 @@ function Update-SlopVoiceReadinessUi {
 function Load-SlopSettings {
     $cfg = $script:SlopConfigResult.Config
     if ($null -eq $cfg) { return }
-    $SettingsInstructionsBox.Text = [string]$cfg.instructions
+    $defaults = New-SlopDefaultConfig
+    $SettingsInstructionsBox.Text = if ($cfg.instructions) { [string]$cfg.instructions } else { [string]$defaults.instructions }
     $model = [string]$cfg.model
     if ([string]::IsNullOrWhiteSpace($model)) { $model = [string]$cfg.modelName }
+    if ([string]::IsNullOrWhiteSpace($model)) { $model = [string]$defaults.model }
     $SettingsModelBox.Text = $model
     $SettingsBaseUrlBox.Text = Get-SlopEffectiveOpenCodeBaseUrl -Config $cfg
+    if ([string]::IsNullOrWhiteSpace([string]$cfg.agentId)) { $cfg.agentId = 'sloppy' }
     $SettingsAgentIdBox.Text = [string]$cfg.agentId
     Update-SlopVoiceReadinessUi
 }
@@ -1380,6 +1383,16 @@ $AutostartButton.Add_Click({
 $SettingsSaveButton.Add_Click({ param($s,$e) Save-SlopSettings | Out-Null })
 $CustomizeSaveButton.Add_Click({ param($s,$e) Save-SlopCustomize | Out-Null })
 $BrainSaveButton.Add_Click({ param($s,$e) Save-SlopBrain | Out-Null })
+$BrainTypeCombo.Add_SelectionChanged({
+    param($s,$e)
+    $BrainModelBox.Items.Clear()
+    switch ([string]$BrainTypeCombo.SelectedItem) {
+        'builtin'  { [void]$BrainModelBox.Items.Add('Qwen3.5-2B Q4_K_M') }
+        'opencode' { foreach ($m in @('big-pickle','beam-free')) { [void]$BrainModelBox.Items.Add($m) } }
+        'custom'   { }
+    }
+    if ($BrainModelBox.Items.Count -gt 0) { $BrainModelBox.SelectedIndex = 0 }
+})
 $VoiceRepairButton.Add_Click({
     try {
         $report = Invoke-SlopPreflight -InstallRoot $script:VoiceInstallRoot -ConfigPath (Get-SlopConfigPath)
