@@ -53,7 +53,7 @@ function New-SlopFallbackOnboardingResult {
     param([Parameter(Mandatory)][hashtable]$Config)
     $result = @{} + (New-SlopDefaultConfig)
     foreach ($key in $Config.Keys) { if ($result.ContainsKey($key)) { $result[$key] = $Config[$key] } }
-    $result.personaText = New-SlopPersonaMarkdown -Preset 'calm' -Name ([string]$result.name)
+    $result.personaText = New-SlopPersonaMarkdown -Preset 'calm' -Name ([string]$result.name) -OwnerName ([string]$result.ownerName) -CustomText ([string]$result.instructions)
     return $result
 }
 
@@ -232,7 +232,7 @@ function Show-SlopOnboarding {
 
     $NameBox.Text = [string]$Config.name
     $OwnerBox.Text = [string]$Config.ownerName
-    $CustomBox.Text = ''
+    $CustomBox.Text = [string]$Config.instructions
     $EndpointBox.Text = [string]$Config.endpointUrl
     $ModelBox.Text = if ($Config.modelName) { [string]$Config.modelName } else { [string]$Config.model }
     $ProviderBox.Text = [string]$Config.provider
@@ -347,6 +347,7 @@ function Show-SlopOnboarding {
         $result = @{} + (New-SlopDefaultConfig)
         $result.name = $NameBox.Text.Trim()
         $result.ownerName = $OwnerBox.Text.Trim()
+        $result.instructions = $CustomBox.Text.Trim()
         $result.color = $script:SelectedColor
         $result.personality = $script:SelectedPreset
         $result.autostart = [bool]$Config.autostart

@@ -52,13 +52,13 @@ function New-SlopDefaultConfig {
     return @{
         version           = $script:SlopConfigVersion
         name              = 'Sloppy'
-        ownerName         = ''
+        ownerName         = 'friend'
         color             = 'ocean'
         personality       = 'calm'
-        instructions      = ''
+        instructions      = 'Be concise, honest, and helpful.'
         brain             = 'builtin'
-        endpointUrl       = ''
-        modelName         = ''
+        endpointUrl       = 'http://127.0.0.1:11434'
+        modelName         = 'Qwen3.5-2B Q4_K_M'
         autostart         = $true
 
         # Tier 1 bundled local brain (Qwen3.5-2B Q4_K_M). localVisionReady and
@@ -80,14 +80,14 @@ function New-SlopDefaultConfig {
         voiceMaxSeconds    = 30
 
         # Part B route fields. Defaults stay local-first and disclose nothing.
-        provider          = ''
+        provider          = 'opencode'
         providerLocality  = ''
         providerTier      = 'free'
         capabilityProfile = 'companion'
         agentId           = 'sloppy'
-        model             = ''
+        model             = 'big-pickle'
         agent             = @{}
-        openCodeBaseUrl   = ''
+        openCodeBaseUrl   = 'http://127.0.0.1:28894'
         serviceConfigPath = ''
         openCodeSessionId = ''
     }
