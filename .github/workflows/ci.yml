@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Pester suite
+        shell: pwsh
+        run: |
+          Import-Module Pester -MinimumVersion 6.0
+          Invoke-Pester -Path tests/Slop.Tests.ps1 -CI -Output Detailed
