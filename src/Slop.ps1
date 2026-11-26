@@ -219,18 +219,14 @@ $xaml = @'
                   <TextBlock Text="Brain" FontSize="14" FontWeight="SemiBold" Foreground="#EAEAEA" Margin="6,6,6,10"/>
                   <TextBlock x:Name="BrainRouteText" Foreground="#DADAE2" FontSize="11" Margin="6,0,6,6"/>
                   <TextBlock x:Name="BrainEffectiveText" Foreground="#8A8A96" FontSize="10" TextWrapping="Wrap" Margin="6,0,6,8"/>
-                  <TextBlock Text="Brain type" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
+                  <TextBlock Text="Tier (1=built-in, 2=OpenCode, 3=custom)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <ComboBox x:Name="BrainTypeCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
                   <TextBlock Text="Provider" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="BrainProviderBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
-                  <TextBlock Text="Locality" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
-                  <ComboBox x:Name="BrainLocalityCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
-                  <TextBlock Text="Tier" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
-                  <ComboBox x:Name="BrainTierCombo" Height="26" FontSize="11" Width="180" HorizontalAlignment="Left" Margin="6,0,6,8"/>
                   <TextBlock Text="Endpoint URL (custom, loopback only)" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="BrainEndpointBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
                   <TextBlock Text="Model" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
-                  <TextBox x:Name="BrainModelBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
+                  <ComboBox x:Name="BrainModelBox" Height="26" FontSize="11" IsEditable="True" Margin="6,0,6,8" Padding="6,3" Width="220" HorizontalAlignment="Left"/>
                   <TextBlock Text="Agent id" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
                   <TextBox x:Name="BrainAgentIdBox" Height="26" FontSize="11" Margin="6,0,6,8" Padding="6,3"/>
                   <TextBlock Text="Capability profile" Foreground="#B8B8C0" FontSize="10" Margin="6,0,6,2"/>
@@ -388,8 +384,7 @@ $CustomizePersonaBox = $window.FindName('CustomizePersonaBox')
 $CustomizeSaveButton = $window.FindName('CustomizeSaveButton')
 $BrainTypeCombo = $window.FindName('BrainTypeCombo')
 $BrainProviderBox = $window.FindName('BrainProviderBox')
-$BrainLocalityCombo = $window.FindName('BrainLocalityCombo')
-$BrainTierCombo = $window.FindName('BrainTierCombo')
+# BrainLocalityCombo and BrainTierCombo removed; tier is encoded in the brain choice.
 $BrainEndpointBox = $window.FindName('BrainEndpointBox')
 $BrainModelBox = $window.FindName('BrainModelBox')
 $BrainAgentIdBox = $window.FindName('BrainAgentIdBox')
@@ -1109,8 +1104,8 @@ function Save-SlopBrain {
         -Config $script:SlopConfigResult.Config `
         -Brain ([string]$BrainTypeCombo.Text) `
         -Provider ([string]$BrainProviderBox.Text) `
-        -ProviderLocality ([string]$BrainLocalityCombo.Text) `
-        -ProviderTier ([string]$BrainTierCombo.Text) `
+        -ProviderLocality 'remote' `
+        -ProviderTier 'free' `
         -EndpointUrl ([string]$BrainEndpointBox.Text) `
         -Model ([string]$BrainModelBox.Text) `
         -AgentId ([string]$BrainAgentIdBox.Text) `
@@ -1208,9 +1203,17 @@ function Initialize-SlopDestinationPanels {
     $CustomizePersonaBox.Text = $persona
 
     Set-SlopComboItems -Combo $BrainTypeCombo -Items @( Get-SlopBrains ) -Selected ([string]$cfg.brain)
-    Set-SlopComboItems -Combo $BrainLocalityCombo -Items @('', 'local', 'remote') -Selected $locality
-    Set-SlopComboItems -Combo $BrainTierCombo -Items @('free', 'paid') -Selected ([string]$cfg.providerTier)
     Set-SlopComboItems -Combo $BrainProfileCombo -Items @( Get-SlopCapabilityProfiles ) -Selected ([string]$cfg.capabilityProfile)
+    # Populate model choices for the selected tier.
+    $BrainModelBox.Items.Clear()
+    switch ([string]$cfg.brain) {
+        'builtin' { [void]$BrainModelBox.Items.Add('Qwen3.5-2B Q4_K_M') }
+        'opencode' { foreach ($m in @('big-pickle','beam-free')) { [void]$BrainModelBox.Items.Add($m) } }
+        'custom' { }
+    }
+    if ($BrainModelBox.Items.Count -gt 0 -and -not $BrainModelBox.Items.Contains([string]$cfg.model)) {
+        [void]$BrainModelBox.Items.Add([string]$cfg.model)
+    }
     $BrainProviderBox.Text = [string]$cfg.provider
     $BrainEndpointBox.Text = [string]$cfg.endpointUrl
     $BrainModelBox.Text = if ([string]::IsNullOrWhiteSpace([string]$cfg.model)) { [string]$cfg.modelName } else { [string]$cfg.model }

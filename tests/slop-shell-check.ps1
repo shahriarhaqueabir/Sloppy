@@ -33,7 +33,7 @@ if ($m.Success) {
     foreach ($name in @(
         'SettingsStatusText','CustomizeStatusText','BrainStatusText','PrivacyStatusText',
         'CustomizeNameBox','CustomizeColourCombo','CustomizePersonalityCombo','CustomizePersonaBox','CustomizeSaveButton',
-        'BrainTypeCombo','BrainProviderBox','BrainLocalityCombo','BrainTierCombo','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo','BrainSaveButton'
+        'BrainTypeCombo','BrainProviderBox','BrainEndpointBox','BrainModelBox','BrainAgentIdBox','BrainProfileCombo','BrainSaveButton'
     )) {
         Assert-True ($null -ne $w.FindName($name)) "XAML element $name exists"
     }
