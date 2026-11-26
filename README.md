@@ -6,6 +6,8 @@
 
 # Sloppy
 
+[![CI](https://github.com/shahriarhaqueabir/Sloppy/actions/workflows/ci.yml/badge.svg)](https://github.com/shahriarhaqueabir/Sloppy/actions/workflows/ci.yml)
+
 **A tiny desktop companion that makes your local coding agent visible — and easier to trust.**
 
 Sloppy sits on your desktop as an animated pea. It changes colour, shape and motion with what your agent is actually doing: thinking, working, waiting on a tool, stalled, asking permission, or finishing a reply. When OpenCode asks for approval, the decision appears in the chat as **Allow / Allow once / Reject** instead of hiding in a log.
